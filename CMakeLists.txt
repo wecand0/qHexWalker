@@ -77,8 +77,9 @@ configure_file(config/pch.h.in ${PROJECT_BINARY_DIR}/config/pch.h)
 include_directories(${PROJECT_BINARY_DIR}/config)
 ####################
 
-find_package(spdlog CONFIG REQUIRED)
+find_package(spdlog)
 find_package(h3)
+find_package(gtest CONFIG REQUIRED)
 
 # Найти Qt компоненты
 find_package(Qt6 REQUIRED COMPONENTS Quick QuickControls2 Concurrent Network REQUIRED)
@@ -105,7 +106,8 @@ target_link_libraries(${PROJECT_NAME}_imp PUBLIC
         Qt6::Network
         Qt6::Positioning
         QMapLibre::Location
-        spdlog::spdlog
+
+        spdlog::spdlog_header_only
         h3::h3
 )
 

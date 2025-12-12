@@ -13,7 +13,7 @@ H3Model::~H3Model() {
     // Останавливаем worker перед очисткой
     if (worker_ && thread_) {
         thread_->quit();
-        thread_->wait(1000);
+        thread_->wait(250);
     }
 
     qDeleteAll(cells_);
@@ -56,11 +56,11 @@ void H3Model::Init() {
     thread_ = new QThread();
     worker_->moveToThread(thread_);
 
-    connect(worker_, &H3_VIEWER::H3Worker::finished, worker_, &H3_VIEWER::H3Worker::deleteLater);
-    connect(thread_, &QThread::finished, thread_, &QThread::deleteLater);
+    connect(worker_, &H3_VIEWER::H3Worker::finished, worker_, &H3_VIEWER::H3Worker::deleteLater, Qt::QueuedConnection);
+    connect(thread_, &QThread::finished, thread_, &QThread::deleteLater, Qt::QueuedConnection);
 
     // Запуск рабочего цикла в потоке
-    connect(thread_, &QThread::started, worker_, &H3_VIEWER::H3Worker::doWork);
+    connect(thread_, &QThread::started, worker_, &H3_VIEWER::H3Worker::doWork, Qt::QueuedConnection);
     // Получение результатов пересчета
     connect(worker_, &H3_VIEWER::H3Worker::cellComputed, this, &H3Model::onCellComputed, Qt::QueuedConnection);
     thread_->start();
@@ -70,7 +70,7 @@ bool H3Model::isCoordinateTargetValid(const quint8 zoom, const QGeoCoordinate &c
     if (!coordinate.isValid()) {
         return false;
     }
-    if (zoom > maxZoom_c) {
+    if (zoom >= maxZoom_c) {
         return false;
     }
 
@@ -93,14 +93,9 @@ std::optional<H3Data *> H3Model::findCellByID(const quint64 id) const {
     return *it;
 }
 
-QString getColorForResolution(const quint8 resolution) {
+QString H3Model::getColorForResolution(const quint8 resolution) const {
     // Цветовая схема: от крупных ячеек (теплые цвета) к мелким (холодные цвета)
-    static const QHash<int, QString> resolutionColors = {
-        {2, "crimson"},      {3, "orangered"},   {4, "darkorange"},  {5, "orange"},          {6, "gold"},
-        {7, "yellow"},       {8, "greenyellow"}, {9, "limegreen"},   {10, "mediumseagreen"}, {11, "turquoise"},
-        {12, "deepskyblue"}, {13, "dodgerblue"}, {14, "mediumblue"}, {15, "darkviolet"}};
-
-    return resolutionColors.value(resolution, "gray");
+    return resolutionColors_c.value(resolution, "gray");
 }
 
 void H3Model::onCellComputed(const quint8 res, const H3Index index, const QVariantList &polygon,
@@ -110,8 +105,8 @@ void H3Model::onCellComputed(const quint8 res, const H3Index index, const QVaria
         return;
     }
 
-    auto cell = new H3Data();
-    cell->setParent(this);
+    auto cell = new H3Data(this);
+    //cell->setParent(this);
     cell->setRes(res);
     cell->setIndex(index);
     cell->setPath(polygon);
@@ -128,9 +123,9 @@ void H3Model::onCellComputed(const quint8 res, const H3Index index, const QVaria
 }
 
 void H3Model::requestCell(const quint8 mapZoom, const QGeoCoordinate &coordinate) {
-    if (!worker_)
+    if (!worker_) {
         return;
-
+    }
     if (!isCoordinateTargetValid(mapZoom, coordinate)) {
         return;
     }
@@ -140,12 +135,18 @@ void H3Model::requestCell(const quint8 mapZoom, const QGeoCoordinate &coordinate
 
     SPDLOG_INFO("requestCell map zoom {}", mapZoom);
 
-    const auto res = zoomToRes_.at(mapZoom);
+    uint8_t res = 0;
+    try {
+        res = zoomToRes_.at(mapZoom);
+    }catch (const std::out_of_range &err) {
+        spdlog::error("Выбран недопустимый зум под разрешение {}", err.what());
+        return;
+    }
 
     H3Index h3Index = H3_NULL;
     const LatLng ll{.lat = degsToRads(coordinate.latitude()), .lng = degsToRads(coordinate.longitude())};
     if (const auto errIdx = latLngToCell(&ll, res, &h3Index); errIdx != E_SUCCESS || h3Index == H3_NULL) {
-        spdlog::warn("Impossible to convert this coordinae to H3Index {}", errIdx);
+        spdlog::warn("Impossible to convert this lat:{} lng:{} coordinate to H3Index {}", coordinate.latitude(), coordinate.longitude(), errIdx);
         return;
     }
     if (findCellByID(h3Index).has_value()) {
@@ -173,11 +174,11 @@ void H3Model::clearAllCells() {
 
     // Предотвращаем повторный вызов во время очистки
     if (isClearing_) {
-        SPDLOG_INFO("Already clearing, skipping...");
+        spdlog::info("Already clearing, skipping...");
         return;
     }
 
-    SPDLOG_INFO("Starting clearAllCells, count: {}", cells_.size());
+    spdlog::info("Starting clearAllCells, count: {}", cells_.size());
 
     isClearing_ = true;
     emit clearingStarted();

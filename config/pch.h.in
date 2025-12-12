@@ -6,22 +6,20 @@
 // Qt (commonly used across the project)
 #include <QObject>
 #include <QVariant>
-#include <QGuiApplication>
 #include <QQmlApplicationEngine>
-#include <QQmlComponent>
 #include <QQmlContext>
 #include <QQuickWindow>
 #include <QQuickStyle>
-#include <QSurfaceFormat>
+
+#ifndef __APPLE__
+    #include <QSurfaceFormat>
+#endif
+
 #include <QThread>
-#include <QTimer>
-#include <QDir>
 
 // Qt Positioning
 #include <QGeoCoordinate>
 
 // Third-party libraries used widely
 #include <spdlog/spdlog.h>
-
-// H3 hex grid library API
 #include <h3/h3api.h>

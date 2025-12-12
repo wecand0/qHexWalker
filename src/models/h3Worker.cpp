@@ -17,7 +17,6 @@ H3Worker::~H3Worker() { astar_->deleteLater(); }
 
 void H3Worker::doWork() {
     while (!QThread::currentThread()->isInterruptionRequested()) {
-        SPDLOG_INFO("Begin wait");
         {
             std::unique_lock lk(mutex_);
             cv_.wait(lk, [this] { return isRequested.load(); });

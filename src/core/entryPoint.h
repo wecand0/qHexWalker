@@ -1,7 +1,3 @@
-//
-// Created by user on 02/12/2025.
-//
-
 #ifndef Q_HEX_WALKER_ENTRYPOINT_H
 #define Q_HEX_WALKER_ENTRYPOINT_H
 
@@ -28,7 +24,6 @@ private:
     void InitLogger(const std::string &loggerName);
     void InitDataModels();
 
-private:
     QQmlApplicationEngine *engine_{};
     QQuickWindow *rootWindow_{};
 

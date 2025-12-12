@@ -432,7 +432,7 @@ ApplicationWindow {
             // Connections для безопасной очистки модели
             Connections {
                 function onClearingFinished() {
-                    console.log("Map: Clearing finished - recreating MapItemView");
+                    //console.log("Map: Clearing finished - recreating MapItemView");
                     // Восстанавливаем MapItemView
                     if (cells) {
                         cells.model = h3Model;
@@ -440,7 +440,7 @@ ApplicationWindow {
                     }
                 }
                 function onClearingStarted() {
-                    console.log("Map: Clearing started - destroying MapItemView");
+                    //console.log("Map: Clearing started - destroying MapItemView");
                     // Полностью уничтожаем MapItemView
                     if (cells) {
                         cells.visible = false;
@@ -573,7 +573,7 @@ ApplicationWindow {
                     id: latLngTxt
 
                     color: "white"
-                    text: " Zoom: %3".arg(map.zoomLevel.toFixed(1))
+                    text: " Zoom: %1".arg(map.zoomLevel.toFixed(1))
                 }
             }
             // Rectangle {

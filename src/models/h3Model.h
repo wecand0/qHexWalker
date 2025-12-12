@@ -35,7 +35,6 @@ public slots:
     Q_INVOKABLE void clearAllCells();
 
 signals:
-    void cursorChanged();
     void clearingStarted();
     void clearingFinished();
 
@@ -43,6 +42,7 @@ private:
     [[nodiscard]] std::optional<H3Data *> findCellByID(quint64 id) const;
     [[nodiscard]] std::optional<H3Data *> findCellByRes(quint8 res) const;
     [[nodiscard]] bool isCoordinateTargetValid(quint8 zoom, const QGeoCoordinate &coordinate) const;
+    [[nodiscard]] QString getColorForResolution(quint8 resolution) const;
 
     H3_VIEWER::H3Worker *worker_{};
     QThread *thread_{};
@@ -52,6 +52,10 @@ private:
     uint8_t minZoom_c{3};
     uint8_t maxZoom_c{15};
     std::unordered_map<uint8_t, uint8_t> zoomToRes_;
+    const QHash<int, QString> resolutionColors_c = {
+        {2, "crimson"},      {3, "orangered"},   {4, "darkorange"},  {5, "orange"},          {6, "gold"},
+        {7, "yellow"},       {8, "greenyellow"}, {9, "limegreen"},   {10, "mediumseagreen"}, {11, "turquoise"},
+        {12, "deepskyblue"}, {13, "dodgerblue"}, {14, "mediumblue"}, {15, "darkviolet"}};
 
     bool isClearing_{false};
 };

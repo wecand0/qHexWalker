@@ -18,11 +18,7 @@ EntryPoint::EntryPoint(const std::string &loggerName, QObject *parent) : QObject
     connect(engine_, &QQmlApplicationEngine::quit, &QGuiApplication::quit);
 }
 
-EntryPoint::~EntryPoint() {
-    h3Model_->deleteLater();
-    rootWindow_->deleteLater();
-    engine_->deleteLater();
-}
+EntryPoint::~EntryPoint() = default;
 
 void EntryPoint::InitEngine() {
     const QUrl url("qrc:/QHexWalker/ui/main.qml");
@@ -44,7 +40,7 @@ void EntryPoint::InitEngine() {
     engine_->load(url);
 }
 void EntryPoint::InitMap() {
-    mapProvider_ = new MapProvider();
+    mapProvider_ = new MapProvider(this);
     engine_->rootContext()->setContextProperty("mapProvider", mapProvider_);
     const QString pathUrl = "https://api.maptiler.com/maps/base-v4/style.json?key=bFpEhpcbtSI3j1gzj2Is";
     logger_->GetLoggerInstance()->info("pathToMap: {}", pathUrl.toStdString());
@@ -59,7 +55,7 @@ void EntryPoint::InitLogger(const std::string &loggerName) {
     }
 }
 void EntryPoint::InitDataModels() {
-    h3Model_ = new H3Model();
+    h3Model_ = new H3Model(this);
     engine_->rootContext()->setContextProperty("h3Model", h3Model_);
     try {
         h3Model_->Init();
