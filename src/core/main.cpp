@@ -1,5 +1,6 @@
-// Precompiled header must go first
 #include "application.h"
+
+#include <entryPoint.h>
 
 void SigintCallbackHandler(int signum);
 

@@ -1,6 +1,3 @@
-// Precompiled header must go first
-#include "pch.h"
-
 #include "astar.h"
 
 H3AStar::H3AStar(QObject *parent) : QObject(parent) {}

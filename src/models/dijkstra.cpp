@@ -1,6 +1,3 @@
-// Precompiled header must go first
-#include "pch.h"
-
 #include "dijkstra.h"
 
 std::vector<H3Index> Dijkstra::findShortestPathDijkstra(H3Index start, H3Index end) {

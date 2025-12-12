@@ -1,6 +1,3 @@
-// Precompiled header must go first
-#include "pch.h"
-
 #include "h3Data.h"
 
 H3Data::H3Data(QObject *parent) : QObject(parent) {}

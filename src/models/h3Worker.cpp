@@ -1,10 +1,3 @@
-//
-// Created by user on 02/12/2025.
-//
-
-// Precompiled header must go first
-#include "pch.h"
-
 #include "h3Worker.h"
 
 using namespace H3_VIEWER;

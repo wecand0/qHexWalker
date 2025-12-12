@@ -1,7 +1,5 @@
-// Precompiled header must go first
-#include "pch.h"
-
 #include "mapProvider.h"
+
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QTemporaryFile>

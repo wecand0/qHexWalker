@@ -1,7 +1,6 @@
 #pragma once
 
 #include <QGuiApplication>
-#include <entryPoint.h>
 
 class Application final : public QGuiApplication {
 public:

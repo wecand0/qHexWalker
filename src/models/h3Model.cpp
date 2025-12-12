@@ -1,6 +1,3 @@
-// Precompiled header must go first
-#include "pch.h"
-
 #include "h3Model.h"
 #include "h3Data.h"
 #include "h3Worker.h"
