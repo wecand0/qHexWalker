@@ -1,0 +1,7 @@
+#pragma once
+
+#include <QString>
+
+inline std::string LOGGER_NAME = {"@LOGGER_NAME@"};
+inline QString VERSION = {"@VERSION@"};
+inline QString APP_NAME = {"@APP_NAME@"};
