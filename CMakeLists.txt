@@ -62,7 +62,9 @@ endif ()
 
 if (BUILD_TESTS)
     message(STATUS "Тесты            : вкл")
-    find_package(GTest REQUIRED)
+    # Включаем тестирование
+    enable_testing()
+    find_package(GTest CONFIG REQUIRED)
 else ()
     message(STATUS "Тесты            : выкл")
 endif ()
@@ -79,7 +81,7 @@ include_directories(${PROJECT_BINARY_DIR}/config)
 
 find_package(spdlog)
 find_package(h3)
-find_package(gtest CONFIG REQUIRED)
+#find_package(gtest CONFIG REQUIRED)
 
 # Найти Qt компоненты
 find_package(Qt6 REQUIRED COMPONENTS Quick QuickControls2 Concurrent Network REQUIRED)
@@ -111,8 +113,7 @@ target_link_libraries(${PROJECT_NAME}_imp PUBLIC
         h3::h3
 )
 
-qt_add_executable(${PROJECT_NAME} "${CMAKE_SOURCE_DIR}/src/core/main.cpp"
-        src/models/helper.h)
+qt_add_executable(${PROJECT_NAME} "${CMAKE_SOURCE_DIR}/src/core/main.cpp")
 target_precompile_headers(${PROJECT_NAME} PRIVATE ${PROJECT_BINARY_DIR}/config/pch.h)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
@@ -171,11 +172,8 @@ if (BUILD_TESTS)
     file(GLOB TEST_SRC_FILES "${CMAKE_SOURCE_DIR}/tests/*.cpp")
 
     add_executable(${PROJECT_NAME}_tests "${TEST_SRC_FILES}")
-    target_link_libraries(${PROJECT_NAME}_tests PRIVATE ${PROJECT_NAME}_imp GTest::GTest GTest::Main)
-    target_include_directories(${PROJECT_NAME}_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-    # Включаем тестирование
-    enable_testing()
+    target_link_libraries(${PROJECT_NAME}_tests PRIVATE ${PROJECT_NAME}_imp GTest::gtest GTest::gtest_main)
+    target_include_directories(${PROJECT_NAME}_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     add_test(NAME ${PROJECT_NAME}_Tests COMMAND ${PROJECT_NAME}_tests)
 
     copy_recursive(${CMAKE_SOURCE_DIR}/tests/files ${CMAKE_CURRENT_BINARY_DIR}/tests/files *)

@@ -1,12 +1,17 @@
 #include "astar.h"
 
 H3AStar::H3AStar(QObject *parent) : QObject(parent) {}
+
 H3AStar::~H3AStar() = default;
+
 std::vector<H3Index> H3AStar::findShortestPath(const H3Index start, const H3Index end) {
     // Проверка валидности индексов
     if (!isValidCell(start) || !isValidCell(end)) {
-        spdlog::warn("Невалидные H3 индексы");
-        return {};
+        throw std::domain_error("Невалидные H3 индексы");
+    }
+
+    if (start == end) {
+        throw std::runtime_error("Стартовая и конечная точка равны");
     }
 
     // Сохраняем оригинальные индексы и их разрешения
@@ -20,15 +25,13 @@ std::vector<H3Index> H3AStar::findShortestPath(const H3Index start, const H3Inde
     const H3Index endRes2 = endRes != 2 ? cellToParentRes2(end) : end;
 
     if (startRes2 == H3_NULL || endRes2 == H3_NULL) {
-        spdlog::warn("Ошибка преобразования к разрешению 2");
-        return {};
+        throw std::domain_error("Ошибка преобразования к разрешению 2");
     }
 
     // Получаем координаты целевой ячейки для эвристики
     LatLng endCoord;
     if (cellToLatLng(endRes2, &endCoord) != E_SUCCESS) {
-        spdlog::warn("Ошибка получения координат целевой ячейки");
-        return {};
+        throw std::runtime_error("Ошибка получения координат целевой ячейки");
     }
 
     // Ищем путь на разрешении 2
@@ -78,12 +81,7 @@ std::vector<H3Index> H3AStar::findPathAtResolution2(const H3Index start, const H
         }
 
         closedSet.insert(current.cell);
-
         emit newCell(current.cell);
-
-        // auto childPolygon = indexToPolygon(current.cell);
-        // std::this_thread::sleep_for(17ms);
-        // emit cellComputed(getResolution(current.cell), current.cell, childPolygon, true);
 
         // Получаем соседей текущей ячейки
         for (const auto neighbors = getNeighbors(current.cell); const H3Index &neighbor : neighbors) {
@@ -149,9 +147,8 @@ std::vector<H3Index> H3AStar::refineEndSegmentGradual(const H3Index prevInPath, 
         }
 
         // Находим точку входа - ячейку, ближайшую к предыдущему направлению
-        const H3Index entryCell = findBoundaryCellInDirection(children, targetAtRes, prevInPath);
-
-        if (entryCell != H3_NULL) {
+        if (const H3Index entryCell = findBoundaryCellInDirection(children, targetAtRes, prevInPath);
+            entryCell != H3_NULL) {
             // Ищем путь от точки входа к цели на текущем разрешении
             std::vector<H3Index> subPath = findLocalPathAtResolution(entryCell, targetAtRes, currentCell);
 
@@ -181,15 +178,16 @@ std::vector<H3Index> H3AStar::refineStartSegmentGradual(const H3Index originalSt
         std::vector<H3Index> siblings = getChildrenAtResolution(parent, res + 1);
 
         // Находим границу - ячейку, ближайшую к направлению движения
-        const H3Index boundaryCell = findBoundaryCellInDirection(siblings, currentCell, nextInPath);
 
-        if (boundaryCell != H3_NULL && boundaryCell != currentCell) {
+        if (const H3Index boundaryCell = findBoundaryCellInDirection(siblings, currentCell, nextInPath);
+            boundaryCell != H3_NULL && boundaryCell != currentCell) {
             // Ищем путь к границе на текущем разрешении
 
             // Добавляем путь (без первого элемента, т.к. Он уже добавлен)
             if (std::vector<H3Index> subPath = findLocalPathAtResolution(currentCell, boundaryCell, parent);
                 subPath.size() > 1) {
                 segment.insert(segment.end(), subPath.begin() + 1, subPath.end());
+                // FIXME do I need this?
                 currentCell = boundaryCell;
             }
         }
@@ -280,7 +278,7 @@ std::vector<H3Index> H3AStar::findLocalPathAtResolution(H3Index start, H3Index e
         return {start, end};
     }
 
-    std::priority_queue<Node, std::vector<Node>, std::greater<Node>> openSet;
+    std::priority_queue<Node, std::vector<Node>, std::greater<>> openSet;
     std::unordered_map<H3Index, double, H3IndexHash> gScores;
     std::unordered_map<H3Index, H3Index, H3IndexHash> previous;
     std::unordered_set<H3Index, H3IndexHash> closedSet;
@@ -319,9 +317,9 @@ std::vector<H3Index> H3AStar::findLocalPathAtResolution(H3Index start, H3Index e
             }
 
             const double edgeDistance = getDistanceBetweenCells(current.cell, neighbor);
-            const double tentativeGScore = gScores[current.cell] + edgeDistance;
 
-            if (!gScores.contains(neighbor) || tentativeGScore < gScores[neighbor]) {
+            if (const double tentativeGScore = gScores[current.cell] + edgeDistance;
+                !gScores.contains(neighbor) || tentativeGScore < gScores[neighbor]) {
 
                 previous[neighbor] = current.cell;
                 gScores[neighbor] = tentativeGScore;
@@ -381,11 +379,14 @@ double H3AStar::getDistanceBetweenCells(const H3Index cell1, const H3Index cell2
     LatLng coord1, coord2;
 
     // Получаем координаты центров ячеек
-    const H3Error err1 = cellToLatLng(cell1, &coord1);
-    const H3Error err2 = cellToLatLng(cell2, &coord2);
-
-    if (err1 != E_SUCCESS || err2 != E_SUCCESS) {
-        return 1.0;  // Возвращаем единичное расстояние по умолчанию
+    // Возвращаем единичное расстояние по умолчанию
+    H3Error err = cellToLatLng(cell1, &coord1);
+    if (err != E_SUCCESS) {
+        return 1.0;
+    }
+    err = cellToLatLng(cell2, &coord2);
+    if (err != E_SUCCESS) {
+        return 1.0;
     }
 
     // Вычисляем расстояние

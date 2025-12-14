@@ -38,13 +38,20 @@ void H3Worker::doWork() {
         const H3Index start = req.index;  // 0x8b194ad14da3fffL;
         constexpr H3Index end = 0x8eb8a6b13046757L;
 
-        for (const auto path = astar_->findShortestPath(start, end); const auto index : path) {
-            auto childPolygon = Helper::indexToPolygon(index);
-            if (!childPolygon.has_value()) {
-                break;
+        std::vector<H3Index> path;
+        try {
+            path = astar_->findShortestPath(start, end);
+
+            for (const auto index : path) {
+                auto childPolygon = Helper::indexToPolygon(index);
+                if (!childPolygon.has_value()) {
+                    break;
+                }
+                std::this_thread::sleep_for(7ms);
+                emit cellComputed(getResolution(index), index, childPolygon.value(), false);
             }
-            std::this_thread::sleep_for(7ms);
-            emit cellComputed(getResolution(index), index, childPolygon.value(), false);
+        }catch(const std::exception& e) {
+            spdlog::warn("{}", e.what());
         }
 
         {

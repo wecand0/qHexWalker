@@ -16,7 +16,7 @@ public:
 
     [[nodiscard]] QString url() const noexcept { return url_; }
     static MapProviderError isSQLiteFileValidOffline(const QString &filePath);
-    void exchangeUrlOffline(const QString &pathToMapz);
+    void exchangeUrlOffline(const QString &pathToMap);
 
 public slots:
     void setUrl(const QString &url) noexcept {

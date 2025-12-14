@@ -106,7 +106,7 @@ void H3Model::onCellComputed(const quint8 res, const H3Index index, const QVaria
     }
 
     auto cell = new H3Data(this);
-    //cell->setParent(this);
+    // cell->setParent(this);
     cell->setRes(res);
     cell->setIndex(index);
     cell->setPath(polygon);
@@ -138,7 +138,7 @@ void H3Model::requestCell(const quint8 mapZoom, const QGeoCoordinate &coordinate
     uint8_t res = 0;
     try {
         res = zoomToRes_.at(mapZoom);
-    }catch (const std::out_of_range &err) {
+    } catch (const std::out_of_range &err) {
         spdlog::error("Выбран недопустимый зум под разрешение {}", err.what());
         return;
     }
@@ -146,7 +146,8 @@ void H3Model::requestCell(const quint8 mapZoom, const QGeoCoordinate &coordinate
     H3Index h3Index = H3_NULL;
     const LatLng ll{.lat = degsToRads(coordinate.latitude()), .lng = degsToRads(coordinate.longitude())};
     if (const auto errIdx = latLngToCell(&ll, res, &h3Index); errIdx != E_SUCCESS || h3Index == H3_NULL) {
-        spdlog::warn("Impossible to convert this lat:{} lng:{} coordinate to H3Index {}", coordinate.latitude(), coordinate.longitude(), errIdx);
+        spdlog::warn("Impossible to convert this lat:{} lng:{} coordinate to H3Index {}", coordinate.latitude(),
+                     coordinate.longitude(), errIdx);
         return;
     }
     if (findCellByID(h3Index).has_value()) {

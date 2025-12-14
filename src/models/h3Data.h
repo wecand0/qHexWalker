@@ -25,11 +25,11 @@ public:
     [[nodiscard("h3 polygon")]] QVariantList path() const;
 
 public slots:
-    void setRes(quint8 cellRes);
-    void setIndex(quint64 cellID);
+    void setRes(quint8 res);
+    void setIndex(quint64 index);
     void setColor(const QColor &color);
     void setCoordinate(const QGeoCoordinate &coordinate);
-    void setPath(const QVariantList &cell);
+    void setPath(const QVariantList &path);
 
 signals:
     void resChanged();
