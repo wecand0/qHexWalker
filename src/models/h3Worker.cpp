@@ -50,7 +50,7 @@ void H3Worker::doWork() {
                 std::this_thread::sleep_for(7ms);
                 emit cellComputed(getResolution(index), index, childPolygon.value(), false);
             }
-        }catch(const std::exception& e) {
+        } catch (const std::exception &e) {
             spdlog::warn("{}", e.what());
         }
 

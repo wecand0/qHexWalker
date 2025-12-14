@@ -71,7 +71,7 @@ std::vector<H3Index> H3AStar::findPathAtResolution2(const H3Index start, const H
 
         // Если достигли конечной точки
         if (current.cell == end) {
-            spdlog::info("Узлов исследовано: {}", nodesExplored);
+            // spdlog::info("Узлов исследовано: {}", nodesExplored);
             return reconstructPath(previous, start, end);
         }
 

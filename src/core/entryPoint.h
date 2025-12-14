@@ -19,10 +19,12 @@ public:
     ~EntryPoint() override;
 
 private:
-    void InitEngine();
-    void InitMap();
     void InitLogger(const std::string &loggerName);
     void InitDataModels();
+    void InitMap();
+
+    const QString pathUrl_c{"https://api.maptiler.com/maps/base-v4/style.json?key=bFpEhpcbtSI3j1gzj2Is"};
+    void InitEngine();
 
     QQmlApplicationEngine *engine_{};
     QQuickWindow *rootWindow_{};

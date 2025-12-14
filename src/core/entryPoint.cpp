@@ -20,6 +20,30 @@ EntryPoint::EntryPoint(const std::string &loggerName, QObject *parent) : QObject
 
 EntryPoint::~EntryPoint() = default;
 
+void EntryPoint::InitLogger(const std::string &loggerName) {
+    logger_ = std::make_unique<TD::Logger>(loggerName);
+    try {
+        logger_->Init();
+    } catch (const std::exception &e) {
+        printf("%s", e.what());
+    }
+}
+void EntryPoint::InitDataModels() {
+    h3Model_ = new H3Model(this);
+    engine_->rootContext()->setContextProperty("h3Model", h3Model_);
+    try {
+        h3Model_->Init();
+    } catch (const std::exception &e) {
+        spdlog::critical(e.what());
+    }
+}
+void EntryPoint::InitMap() {
+    mapProvider_ = new MapProvider(this);
+    engine_->rootContext()->setContextProperty("mapProvider", mapProvider_);
+    logger_->GetLoggerInstance()->info("Map url -> {}", pathUrl_c.toStdString());
+    mapProvider_->setUrl(pathUrl_c);
+}
+
 void EntryPoint::InitEngine() {
     const QUrl url("qrc:/QHexWalker/ui/main.qml");
     connect(
@@ -38,28 +62,4 @@ void EntryPoint::InitEngine() {
         Qt::QueuedConnection);
 
     engine_->load(url);
-}
-void EntryPoint::InitMap() {
-    mapProvider_ = new MapProvider(this);
-    engine_->rootContext()->setContextProperty("mapProvider", mapProvider_);
-    const QString pathUrl = "https://api.maptiler.com/maps/base-v4/style.json?key=bFpEhpcbtSI3j1gzj2Is";
-    logger_->GetLoggerInstance()->info("pathToMap: {}", pathUrl.toStdString());
-    mapProvider_->setUrl(pathUrl);
-}
-void EntryPoint::InitLogger(const std::string &loggerName) {
-    logger_ = std::make_unique<TD::Logger>(loggerName);
-    try {
-        logger_->Init();
-    } catch (const std::exception &e) {
-        printf("%s", e.what());
-    }
-}
-void EntryPoint::InitDataModels() {
-    h3Model_ = new H3Model(this);
-    engine_->rootContext()->setContextProperty("h3Model", h3Model_);
-    try {
-        h3Model_->Init();
-    } catch (const std::exception &e) {
-        spdlog::critical(e.what());
-    }
 }

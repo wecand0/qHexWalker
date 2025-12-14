@@ -3,7 +3,7 @@
 #include "h3Worker.h"
 
 H3Model::H3Model(QObject *parent) : QAbstractListModel(parent) {
-    auto zoomToResolution = [](const double zoom) { return std::max(std::min(zoom / 1.5, 15.0), 0.0); };
+    auto zoomToResolution = [&](const double zoom) { return std::max(std::min(zoom / 1.5, maxZoom_c), 0.0); };
     for (auto zoom = minZoom_c; zoom < maxZoom_c; zoom++) {
         zoomToRes_.emplace(zoom, std::floor(zoomToResolution(zoom)));
     }
@@ -106,7 +106,6 @@ void H3Model::onCellComputed(const quint8 res, const H3Index index, const QVaria
     }
 
     auto cell = new H3Data(this);
-    // cell->setParent(this);
     cell->setRes(res);
     cell->setIndex(index);
     cell->setPath(polygon);

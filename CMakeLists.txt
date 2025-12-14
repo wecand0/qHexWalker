@@ -9,21 +9,8 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-
-
-# Print CMake configuration
-message(STATUS "System           : ${CMAKE_SYSTEM}")
-message(STATUS "Версия ПО        : ${VERSION}")
-
-#-DCMAKE_TOOLCHAIN_FILE=/Users/user/.vcpkg-clion/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_PREFIX_PATH="/Users/user/Qt/6.10.1/macos"  -DCMAKE_C_COMPILER_LAUNCHER="ccache" -DCMAKE_CXX_COMPILER_LAUNCHER="ccache"
-option(BUILD_TESTS "ENABLE TESTING" OFF)
-option(DEBUG "ENABLE DEBUG" OFF)
-option(ENABLE_NATIVE_OPTIMIZATIONS "Enable -march=native/-mtune=native (non-portable across CPUs)" ON)
-
-
 # Ensure that we link with the threading library
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     # Все предупреждения - это ошибки
     add_compile_options(-Wfatal-errors -Wall -Werror)
@@ -33,6 +20,24 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     add_compile_options(-fmax-errors=1)
 endif ()
 
+# Print CMake configuration
+message(STATUS "System           : ${CMAKE_SYSTEM}")
+message(STATUS "Версия ПО        : ${APP_VERSION}")
+
+#-DCMAKE_TOOLCHAIN_FILE=/Users/user/.vcpkg-clion/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_PREFIX_PATH="/Users/user/Qt/6.10.1/macos"  -DCMAKE_C_COMPILER_LAUNCHER="ccache" -DCMAKE_CXX_COMPILER_LAUNCHER="ccache"
+option(BUILD_TESTS "ENABLE TESTING" ON)
+option(BENCHMARK_ENABLE "ENABLE BENCHMARK" ON)
+option(DEBUG "ENABLE DEBUG" OFF)
+option(ENABLE_NATIVE_OPTIMIZATIONS "Enable -march=native/-mtune=native (non-portable across CPUs)" ON)
+
+## CONFIG
+set(LOGGER_NAME "core")
+set(VERSION ${APP_VERSION})
+set(APP_NAME ${PROJECT_NAME})
+configure_file(config/config.in ${PROJECT_BINARY_DIR}/config/config.h)
+configure_file(config/pch.h.in ${PROJECT_BINARY_DIR}/config/pch.h)
+include_directories(${PROJECT_BINARY_DIR}/config)
+####################
 
 if (DEBUG)
     message(STATUS "Сборка           : RelWithDebInfo")
@@ -69,19 +74,15 @@ else ()
     message(STATUS "Тесты            : выкл")
 endif ()
 
-
-## CONFIG
-set(LOGGER_NAME "core")
-set(VERSION ${APP_VERSION})
-set(APP_NAME ${PROJECT_NAME})
-configure_file(config/config.in ${PROJECT_BINARY_DIR}/config/config.h)
-configure_file(config/pch.h.in ${PROJECT_BINARY_DIR}/config/pch.h)
-include_directories(${PROJECT_BINARY_DIR}/config)
-####################
+if(BENCHMARK_ENABLE)
+    message(STATUS "Benchmark        : вкл")
+    find_package(benchmark CONFIG REQUIRED)
+else ()
+    message(STATUS "Benchmark        : вкл")
+endif ()
 
 find_package(spdlog)
 find_package(h3)
-#find_package(gtest CONFIG REQUIRED)
 
 # Найти Qt компоненты
 find_package(Qt6 REQUIRED COMPONENTS Quick QuickControls2 Concurrent Network REQUIRED)
@@ -109,7 +110,7 @@ target_link_libraries(${PROJECT_NAME}_imp PUBLIC
         Qt6::Positioning
         QMapLibre::Location
 
-        spdlog::spdlog_header_only
+        spdlog::spdlog
         h3::h3
 )
 
@@ -166,8 +167,6 @@ copy_recursive(${CMAKE_SOURCE_DIR}/data/tiles/ ${CMAKE_CURRENT_BINARY_DIR}/tiles
 # Тесты
 #
 if (BUILD_TESTS)
-    message(STATUS "Generating tests")
-
     # Рекурсивно ищем все используемые в тестах .cpp файлы
     file(GLOB TEST_SRC_FILES "${CMAKE_SOURCE_DIR}/tests/*.cpp")
 
@@ -178,6 +177,21 @@ if (BUILD_TESTS)
 
     copy_recursive(${CMAKE_SOURCE_DIR}/tests/files ${CMAKE_CURRENT_BINARY_DIR}/tests/files *)
 endif ()
+
+########################################
+#
+# Benchmark
+#
+if (BENCHMARK_ENABLE)
+    #    # Рекурсивно ищем все используемые в benchmark .cpp файлы
+    file(GLOB BENCHMARK_SRC_FILES "${CMAKE_SOURCE_DIR}/benchmark/*.cpp")
+
+    add_executable(${PROJECT_NAME}_benchmark "${BENCHMARK_SRC_FILES}")
+    target_link_libraries(${PROJECT_NAME}_benchmark PRIVATE ${PROJECT_NAME}_imp benchmark::benchmark benchmark::benchmark_main)
+    target_include_directories(${PROJECT_NAME}_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+endif ()
+
+########################################
 
 install(
         TARGETS ${PROJECT_NAME}

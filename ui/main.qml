@@ -141,7 +141,7 @@ ApplicationWindow {
                         coordinateListModel.append({
                             coordinate: mapMouseArea.currentCoordinate,
                             h3Index: "H3:" + mapMouseArea.currentCoordinate.latitude.toFixed(6) + "," + mapMouseArea.currentCoordinate.longitude.toFixed(6),
-                            resolution: Math.floor(map.zoomLevel),
+                            resolution: Math.max(Math.min(map.zoomLevel / 1.5, 15.0), 0.0),
                             zoom: map.zoomLevel.toFixed(1),
                             order: coordinateListModel.count + 1
                         });
@@ -476,8 +476,6 @@ ApplicationWindow {
                     }
                     if (event.button === Qt.RightButton) {
                         currentCoordinate = map.toCoordinate(Qt.point(event.x, event.y));
-                        h3Model.setCursorCell(map.zoomLevel, map.toCoordinate(Qt.point(mouseX, mouseY)));
-                        console.log("ROGH");
                     }
                 }
                 onDoubleClicked: event => {
@@ -501,16 +499,6 @@ ApplicationWindow {
                     let dy = postZoomPoint.y - preZoomPoint.y;
                     map.center = map.toCoordinate(Qt.point(map.width / 2 + dx, map.height / 2 + dy));
                 }
-            }
-            MapPolyline {
-                line.color: 'red'
-                opacity: 10
-                path: [QtPositioning.coordinate(80, 0), QtPositioning.coordinate(80, 10), QtPositioning.coordinate(80, 20), QtPositioning.coordinate(80, 30), QtPositioning.coordinate(80, 40), QtPositioning.coordinate(80, 50), QtPositioning.coordinate(80, 60), QtPositioning.coordinate(80, 70), QtPositioning.coordinate(80, 80), QtPositioning.coordinate(80, 90), QtPositioning.coordinate(80, 100), QtPositioning.coordinate(80, 110), QtPositioning.coordinate(80, 120), QtPositioning.coordinate(80, 130), QtPositioning.coordinate(80, 140), QtPositioning.coordinate(80, 150), QtPositioning.coordinate(80, 160), QtPositioning.coordinate(80, 170), QtPositioning.coordinate(80, 180), QtPositioning.coordinate(80, -170), QtPositioning.coordinate(80, -160), QtPositioning.coordinate(80, -150), QtPositioning.coordinate(80, -140), QtPositioning.coordinate(80, -130), QtPositioning.coordinate(80, -120), QtPositioning.coordinate(80, -110), QtPositioning.coordinate(80, -100), QtPositioning.coordinate(80, -90), QtPositioning.coordinate(80, -80), QtPositioning.coordinate(80, -70), QtPositioning.coordinate(80, -60), QtPositioning.coordinate(80, -50), QtPositioning.coordinate(80, -40), QtPositioning.coordinate(80, -30), QtPositioning.coordinate(80, -20), QtPositioning.coordinate(80, -10), QtPositioning.coordinate(80, 0)]
-            }
-            MapPolyline {
-                line.color: 'red'
-                opacity: 10
-                path: [QtPositioning.coordinate(-80, 0), QtPositioning.coordinate(-80, 10), QtPositioning.coordinate(-80, 20), QtPositioning.coordinate(-80, 30), QtPositioning.coordinate(-80, 40), QtPositioning.coordinate(-80, 50), QtPositioning.coordinate(-80, 60), QtPositioning.coordinate(-80, 70), QtPositioning.coordinate(-80, 80), QtPositioning.coordinate(-80, 90), QtPositioning.coordinate(-80, 100), QtPositioning.coordinate(-80, 110), QtPositioning.coordinate(-80, 120), QtPositioning.coordinate(-80, 130), QtPositioning.coordinate(-80, 140), QtPositioning.coordinate(-80, 150), QtPositioning.coordinate(-80, 160), QtPositioning.coordinate(-80, 170), QtPositioning.coordinate(-80, 180), QtPositioning.coordinate(-80, -170), QtPositioning.coordinate(-80, -160), QtPositioning.coordinate(-80, -150), QtPositioning.coordinate(-80, -140), QtPositioning.coordinate(-80, -130), QtPositioning.coordinate(-80, -120), QtPositioning.coordinate(-80, -110), QtPositioning.coordinate(-80, -100), QtPositioning.coordinate(-80, -90), QtPositioning.coordinate(-80, -80), QtPositioning.coordinate(-80, -70), QtPositioning.coordinate(-80, -60), QtPositioning.coordinate(-80, -50), QtPositioning.coordinate(-80, -40), QtPositioning.coordinate(-80, -30), QtPositioning.coordinate(-80, -20), QtPositioning.coordinate(-80, -10), QtPositioning.coordinate(-80, 0)]
             }
             MapItemView {
                 id: cells

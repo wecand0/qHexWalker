@@ -49,15 +49,15 @@ private:
 
     QList<H3Data *> cells_;
 
-    uint8_t minZoom_c{3};
-    uint8_t maxZoom_c{15};
+    const double minZoom_c{3};
+    const double maxZoom_c{15};
     std::unordered_map<uint8_t, uint8_t> zoomToRes_;
     const QHash<int, QString> resolutionColors_c = {
         {2, "crimson"},      {3, "orangered"},   {4, "darkorange"},  {5, "orange"},          {6, "gold"},
         {7, "yellow"},       {8, "greenyellow"}, {9, "limegreen"},   {10, "mediumseagreen"}, {11, "turquoise"},
         {12, "deepskyblue"}, {13, "dodgerblue"}, {14, "mediumblue"}, {15, "darkviolet"}};
 
-    bool isClearing_{false};
+    std::atomic_bool isClearing_{false};
 };
 
 #endif  // Q_HEX_WALKER_H3MODEL_H
