@@ -2,10 +2,22 @@
 
 #include <queue>
 
-std::vector<H3Index> Dijkstra::findShortestPathDijkstra(H3Index start, H3Index end) {
+std::vector<H3Index> Dijkstra::findShortestPath(H3Index start, H3Index end) {
     // Проверка валидности индексов
     if (!isValidCell(start) || !isValidCell(end)) {
-        spdlog::warn("Невалидные H3 индексы");
+        throw std::domain_error("Невалидные H3 индексы");
+    }
+
+    if (start == end) {
+        throw std::runtime_error("Стартовая и конечная точка равны");
+    }
+
+    const int startRes = getResolution(start);
+    const int endRes = getResolution(end);
+
+
+    if (startRes != endRes) {
+        throw std::domain_error("Для Dijkstra H3 индексы только одинакового разрешения");
         return {};
     }
 
@@ -41,10 +53,9 @@ std::vector<H3Index> Dijkstra::findShortestPathDijkstra(H3Index start, H3Index e
 
         visited.insert(cell);
         // Получаем соседей текущей ячейки
-        std::vector<H3Index> neighbors = getNeighbors(cell);
 
-        for (const H3Index &neighbor : neighbors) {
-            if (visited.count(neighbor)) {
+        for (std::vector<H3Index> neighbors = getNeighbors(cell); const H3Index &neighbor : neighbors) {
+            if (visited.contains(neighbor)) {
                 continue;
             }
 
@@ -62,17 +73,11 @@ std::vector<H3Index> Dijkstra::findShortestPathDijkstra(H3Index start, H3Index e
     }
 
     // Путь не найден
-    spdlog::warn("Путь не найден между индексами");
+    //spdlog::warn("Путь не найден между индексами");
     return {};
 }
-double Dijkstra::normalizeLongitude(double lon) {
-    while (lon >= 180.0)
-        lon -= 360.0;
-    while (lon < -180.0)
-        lon += 360.0;
-    return lon;
-}
-std::vector<H3Index> Dijkstra::getNeighbors(H3Index cell) {
+
+std::vector<H3Index> Dijkstra::getNeighbors(const H3Index cell) {
     std::vector<H3Index> neighbors;
 
     // H3 v4 API: получаем соседей через gridDisk с k=1
@@ -97,7 +102,7 @@ std::vector<H3Index> Dijkstra::getNeighbors(H3Index cell) {
 
     return neighbors;
 }
-double Dijkstra::getDistanceBetweenCells(H3Index cell1, H3Index cell2) {
+double Dijkstra::getDistanceBetweenCells(const H3Index cell1, const H3Index cell2) {
     LatLng coord1, coord2;
 
     // Получаем координаты центров ячеек
@@ -112,7 +117,7 @@ double Dijkstra::getDistanceBetweenCells(H3Index cell1, H3Index cell2) {
     return greatCircleDistanceM(&coord1, &coord2);
 }
 std::vector<H3Index> Dijkstra::reconstructPath(const std::unordered_map<H3Index, H3Index, H3IndexHash> &previous,
-                                               H3Index start, H3Index end) {
+                                               H3Index start, const H3Index end) {
     std::vector<H3Index> path;
     H3Index current = end;
 
