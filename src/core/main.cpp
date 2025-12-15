@@ -1,5 +1,6 @@
 #include "application.h"
 
+#include <csignal>
 #include <entryPoint.h>
 
 void SigintCallbackHandler(int signum);

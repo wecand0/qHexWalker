@@ -3,7 +3,7 @@
 #include "h3Worker.h"
 
 H3Model::H3Model(QObject *parent) : QAbstractListModel(parent) {
-    auto zoomToResolution = [&](const double zoom) { return std::max(std::min(zoom / 1.5, maxZoom_c), 0.0); };
+    auto zoomToResolution = [&](const double zoom) { return std::max(std::min(zoom / 1.5, static_cast<double>(maxZoom_c)), 0.0); };
     for (auto zoom = minZoom_c; zoom < maxZoom_c; zoom++) {
         zoomToRes_.emplace(zoom, std::floor(zoomToResolution(zoom)));
     }

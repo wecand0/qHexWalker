@@ -49,8 +49,8 @@ private:
 
     QList<H3Data *> cells_;
 
-    const double minZoom_c{3};
-    const double maxZoom_c{15};
+    const uint8_t minZoom_c{3};
+    const uint8_t maxZoom_c{15};
     std::unordered_map<uint8_t, uint8_t> zoomToRes_;
     const QHash<int, QString> resolutionColors_c = {
         {2, "crimson"},      {3, "orangered"},   {4, "darkorange"},  {5, "orange"},          {6, "gold"},

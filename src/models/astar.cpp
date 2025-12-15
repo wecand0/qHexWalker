@@ -1,5 +1,7 @@
 #include "astar.h"
 
+#include <queue>
+
 H3AStar::H3AStar(QObject *parent) : QObject(parent) {}
 
 H3AStar::~H3AStar() = default;

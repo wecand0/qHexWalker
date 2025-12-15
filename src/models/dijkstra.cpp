@@ -1,5 +1,7 @@
 #include "dijkstra.h"
 
+#include <queue>
+
 std::vector<H3Index> Dijkstra::findShortestPathDijkstra(H3Index start, H3Index end) {
     // Проверка валидности индексов
     if (!isValidCell(start) || !isValidCell(end)) {
