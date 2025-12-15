@@ -17,7 +17,7 @@ https://github.com/user-attachments/assets/fddeafd0-e530-4c4f-9296-0b9d5bb9605f
 - vcpkg (менеджер пакетов для C/C++)
 - MapLibre Native Qt (собранный и установленный в систему или в локальный префикс)
 
-Примечание: проект собирается через CMake и использует манифест vcpkg (vcpkg.json). Зависимости h3, spdlog, gtest, benchmark подтягиваются автоматически при указании toolchain-файла vcpkg.
+Примечание: проект собирается через CMake и использует манифест vcpkg [vcpkg.json](vcpkg.json). Зависимости h3, spdlog, gtest, benchmark подтягиваются автоматически при указании toolchain-файла vcpkg.
 
 
 ## Быстрый старт (суммарно)
@@ -37,6 +37,7 @@ https://github.com/user-attachments/assets/fddeafd0-e530-4c4f-9296-0b9d5bb9605f
 - Linux (варианты):
   - Через официальный установщик Qt (рекомендуется для соответствия путям), либо
   - Через пакетный менеджер (названия пакетов зависят от дистрибутива: qt6-base-dev, qt6-declarative-dev, qt6-positioning-dev и т.п.).
+  - Через aqt https://github.com/miurahr/aqtinstall
 - macOS: через официальный установщик Qt или Homebrew: `brew install qt`.
 - Windows: через официальный установщик Qt (MSVC или MinGW на ваш выбор). Убедитесь, что выбраны требуемые модули.
 
