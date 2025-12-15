@@ -25,8 +25,8 @@ message(STATUS "System           : ${CMAKE_SYSTEM}")
 message(STATUS "Версия ПО        : ${APP_VERSION}")
 
 #-DCMAKE_TOOLCHAIN_FILE=/Users/user/.vcpkg-clion/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_PREFIX_PATH="/Users/user/Qt/6.10.1/macos"  -DCMAKE_C_COMPILER_LAUNCHER="ccache" -DCMAKE_CXX_COMPILER_LAUNCHER="ccache"
-option(BUILD_TESTS "ENABLE TESTING" ON)
-option(BENCHMARK_ENABLE "ENABLE BENCHMARK" ON)
+option(BUILD_TESTS "ENABLE TESTING" OFF)
+option(BENCHMARK_ENABLE "ENABLE BENCHMARK" OFF)
 option(DEBUG "ENABLE DEBUG" OFF)
 option(ENABLE_NATIVE_OPTIMIZATIONS "Enable -march=native/-mtune=native (non-portable across CPUs)" ON)
 
@@ -81,11 +81,11 @@ else ()
     message(STATUS "Benchmark        : вкл")
 endif ()
 
-find_package(spdlog)
-find_package(h3)
+find_package(spdlog CONFIG REQUIRED)
+find_package(h3 CONFIG REQUIRED)
 
 # Найти Qt компоненты
-find_package(Qt6 REQUIRED COMPONENTS Quick QuickControls2 Concurrent Network REQUIRED)
+find_package(Qt6 REQUIRED COMPONENTS QuickControls2 Sql REQUIRED)
 qt_standard_project_setup(REQUIRES 6.5)
 
 qt_add_resources(RESOURCES resources.qrc)
@@ -104,11 +104,8 @@ target_precompile_headers(${PROJECT_NAME}_imp PRIVATE ${PROJECT_BINARY_DIR}/conf
 
 target_link_libraries(${PROJECT_NAME}_imp PUBLIC
         Qt6::QuickControls2
-        Qt6::Quick
-        Qt6::Concurrent
-        Qt6::Network
         Qt6::Positioning
-        QMapLibre::Location
+        Qt6::Sql
 
         spdlog::spdlog
         h3::h3

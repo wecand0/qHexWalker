@@ -13,7 +13,7 @@ https://github.com/user-attachments/assets/fddeafd0-e530-4c4f-9296-0b9d5bb9605f
 
 - CMake ≥ 3.19
 - Компилятор с поддержкой C++20
-- Qt 6.5+ (модули: Quick, QuickControls2, Concurrent, Network, Positioning)
+- Qt 6.5+ (модули: QuickControls2, Sql)
 - vcpkg (менеджер пакетов для C/C++)
 - MapLibre Native Qt (собранный и установленный в систему или в локальный префикс)
 
@@ -100,8 +100,8 @@ cmake --install build --config Release
 - `CMAKE_PREFIX_PATH` — список путей, где CMake будет искать Qt и MapLibre Native Qt
 
 Также доступны опции CMake:
-- `-DBUILD_TESTS=ON|OFF` (по умолчанию ON)
-- `-DBENCHMARK_ENABLE=ON|OFF` (по умолчанию ON)
+- `-DBUILD_TESTS=ON|OFF` (по умолчанию OFF)
+- `-DBENCHMARK_ENABLE=ON|OFF` (по умолчанию OFF)
 - `-DDEBUG=ON|OFF` (влияет на тип сборки и флаги)
 
 ### Linux/macOS
