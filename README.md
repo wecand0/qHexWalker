@@ -5,8 +5,8 @@
 - H3 берётся из vcpkg (см. vcpkg.json)
 - Для карт используется библиотека MapLibre Native Qt: https://github.com/maplibre/maplibre-native-qt
 
-Скриншот:
-https://github.com/user-attachments/assets/fddeafd0-e530-4c4f-9296-0b9d5bb9605f
+Видео работы:
+[https://github.com/user-attachments/assets/fddeafd0-e530-4c4f-9296-0b9d5bb9605f](https://github.com/user-attachments/assets/fddeafd0-e530-4c4f-9296-0b9d5bb9605f)
 
 
 ## Требования
