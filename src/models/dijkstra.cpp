@@ -15,7 +15,6 @@ std::vector<H3Index> Dijkstra::findShortestPath(H3Index start, H3Index end) {
     const int startRes = getResolution(start);
     const int endRes = getResolution(end);
 
-
     if (startRes != endRes) {
         throw std::domain_error("Для Dijkstra H3 индексы только одинакового разрешения");
         return {};
@@ -73,7 +72,7 @@ std::vector<H3Index> Dijkstra::findShortestPath(H3Index start, H3Index end) {
     }
 
     // Путь не найден
-    //spdlog::warn("Путь не найден между индексами");
+    // spdlog::warn("Путь не найден между индексами");
     return {};
 }
 

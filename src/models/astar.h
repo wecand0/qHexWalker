@@ -40,8 +40,8 @@ private:
     static std::vector<H3Index> refineStartSegmentGradual(H3Index originalStart, H3Index nextInPath, int startRes);
 
     // Детализация пути с плавным переходом между разрешениями
-    std::vector<H3Index> refinePath(const std::vector<H3Index> &pathRes2, H3Index originalStart, H3Index originalEnd,
-                                    int startRes, int endRes);
+    static std::vector<H3Index> refinePath(const std::vector<H3Index> &pathRes2, H3Index originalStart,
+                                           H3Index originalEnd, int startRes, int endRes);
 
     // Найти граничную ячейку в направлении движения
     static H3Index findBoundaryCellInDirection(const std::vector<H3Index> &cells, H3Index from, H3Index direction);
