@@ -33,7 +33,6 @@ void H3Worker::doWork() {
         if (!req.has) {
             continue;
         }
-        searchingCells_.clear();
 
         const H3Index start = req.index;  // 0x8b194ad14da3fffL;
         constexpr H3Index end = 0x8eb8a6b13046757L;

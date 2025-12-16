@@ -49,8 +49,6 @@ private:
     std::atomic_bool isRequested{false};
     std::mutex mutex_;
     std::condition_variable cv_;
-
-    std::vector<H3Index> searchingCells_;
     PendingRequest pending_;
 };
 }  // namespace H3_VIEWER

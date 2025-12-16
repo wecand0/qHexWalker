@@ -64,8 +64,8 @@ ApplicationWindow {
 
     // Функция обновления порядка после перемещения
     function updateOrder() {
-        for (var i = 0; i < coordinateListModel.count; i++) {
-            coordinateListModel.setProperty(i, "order", i + 1);
+        for (var i = 0; i < targetsModel.count; i++) {
+            targetsModel.setProperty(i, "order", i + 1);
         }
     }
 
@@ -138,13 +138,7 @@ ApplicationWindow {
                     }
 
                     onClicked: {
-                        coordinateListModel.append({
-                            coordinate: mapMouseArea.currentCoordinate,
-                            h3Index: "H3:" + mapMouseArea.currentCoordinate.latitude.toFixed(6) + "," + mapMouseArea.currentCoordinate.longitude.toFixed(6),
-                            resolution: Math.max(Math.min(map.zoomLevel / 1.5, 15.0), 0.0),
-                            zoom: map.zoomLevel.toFixed(1),
-                            order: coordinateListModel.count + 1
-                        });
+                        targetsModel.requestCell(map.zoomLevel.toFixed(1), mapMouseArea.currentCoordinate)
                     }
                 }
 
@@ -157,7 +151,7 @@ ApplicationWindow {
                     ListView {
                         id: coordinateListView
 
-                        model: coordinateListModel
+                        model: targetsModel
                         spacing: 4
 
                         delegate: Rectangle {
@@ -271,7 +265,7 @@ ApplicationWindow {
                                         }
 
                                         onClicked: {
-                                            coordinateListModel.remove(index);
+                                            targetsModel.remove(index);
                                             updateOrder();
                                         }
                                     }
@@ -281,7 +275,7 @@ ApplicationWindow {
                                 Text {
                                     color: "lightblue"
                                     font.pixelSize: 11
-                                    text: "H3: " + model.h3Index
+                                    text: "H3: " + model.index
                                     width: parent.width
                                     wrapMode: Text.WrapAnywhere
                                 }
@@ -301,13 +295,13 @@ ApplicationWindow {
                                     Text {
                                         color: "orange"
                                         font.pixelSize: 11
-                                        text: "Res: " + model.resolution
+                                        text: "Res: " + model.res
                                     }
-                                    Text {
-                                        color: "orange"
-                                        font.pixelSize: 11
-                                        text: "Zoom: " + model.zoom
-                                    }
+                                    // Text {
+                                    //     color: "orange"
+                                    //     font.pixelSize: 11
+                                    //     text: "Zoom: " + model.zoom
+                                    // }
                                 }
                             }
                         }

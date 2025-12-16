@@ -1,7 +1,3 @@
-//
-// Created by Vadim on 06.12.2025.
-//
-
 #ifndef Q_HEX_WALKER_DIJKSTRA_H
 #define Q_HEX_WALKER_DIJKSTRA_H
 

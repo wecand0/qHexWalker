@@ -3,6 +3,7 @@
 
 #include "entryPoint.h"
 #include "h3Model.h"
+#include "h3TargetsModel.h"
 #include "logger.h"
 #include "mapProvider.h"
 
@@ -36,6 +37,11 @@ void EntryPoint::InitDataModels() {
     } catch (const std::exception &e) {
         spdlog::critical(e.what());
     }
+
+    targetsModel_ = new H3TargetsModel(this);
+    engine_->rootContext()->setContextProperty("targetsModel", targetsModel_);
+
+    //connect(targetsModel_, &H3TargetsModel::onCompute, h3Model_, &H3Model::,)
 }
 void EntryPoint::InitMap() {
     mapProvider_ = new MapProvider(this);

@@ -18,21 +18,21 @@ H3Model::~H3Model() {
         thread_->wait(250);
     }
 
-    qDeleteAll(cells_);
-    cells_.clear();
+    qDeleteAll(pathCells_);
+    pathCells_.clear();
 }
 
 int H3Model::rowCount(const QModelIndex &parent) const {
     Q_UNUSED(parent)
-    return static_cast<int>(cells_.size());
+    return static_cast<int>(pathCells_.size());
 }
 
 QVariant H3Model::data(const QModelIndex &index, const int role) const {
-    if (!index.isValid() || index.row() >= cells_.size()) {
+    if (!index.isValid() || index.row() >= pathCells_.size()) {
         return {};
     }
 
-    const auto data = cells_.at(index.row());
+    const auto data = pathCells_.at(index.row());
     switch (role) {
     case ResRole:
         return QVariant::fromValue(data->res());
@@ -80,16 +80,16 @@ bool H3Model::isCoordinateTargetValid(const quint8 zoom, const QGeoCoordinate &c
 }
 
 std::optional<H3Data *> H3Model::findCellByRes(const quint8 res) const {
-    const auto it = std::ranges::find_if(cells_, [res](const auto &cell) { return cell->res() == res; });
-    if (it == cells_.end()) {
+    const auto it = std::ranges::find_if(pathCells_, [res](const auto &cell) { return cell->res() == res; });
+    if (it == pathCells_.end()) {
         return std::nullopt;
     }
     return *it;
 }
 
 std::optional<H3Data *> H3Model::findCellByID(const quint64 id) const {
-    const auto it = std::ranges::find_if(cells_, [id](const auto &cell) { return cell->index() == id; });
-    if (it == cells_.end()) {
+    const auto it = std::ranges::find_if(pathCells_, [id](const auto &cell) { return cell->index() == id; });
+    if (it == pathCells_.end()) {
         return std::nullopt;
     }
     return *it;
@@ -118,8 +118,8 @@ void H3Model::onCellComputed(const quint8 res, const H3Index index, const QVaria
         cell->setColor(getColorForResolution(res));
     }
 
-    beginInsertRows(QModelIndex(), static_cast<int>(cells_.size()), static_cast<int>(cells_.size()));
-    cells_.emplace_back(cell);
+    beginInsertRows(QModelIndex(), static_cast<int>(pathCells_.size()), static_cast<int>(pathCells_.size()));
+    pathCells_.emplace_back(cell);
     endInsertRows();
 }
 
@@ -156,7 +156,7 @@ void H3Model::requestCell(const quint8 mapZoom, const QGeoCoordinate &coordinate
     }
 
     // Если есть старые ячейки, очищаем их перед добавлением новой
-    if (!cells_.empty()) {
+    if (!pathCells_.empty()) {
         clearAllCells();
 
         if (!isClearing_) {
@@ -170,7 +170,7 @@ void H3Model::requestCell(const quint8 mapZoom, const QGeoCoordinate &coordinate
 
 void H3Model::clearAllCells() {
     // Проверяем, есть ли что очищать
-    if (cells_.isEmpty()) {
+    if (pathCells_.isEmpty()) {
         return;
     }
 
@@ -180,14 +180,14 @@ void H3Model::clearAllCells() {
         return;
     }
 
-    spdlog::info("Starting clearAllCells, count: {}", cells_.size());
+    spdlog::info("Starting clearAllCells, count: {}", pathCells_.size());
 
     isClearing_ = true;
     emit clearingStarted();
 
     beginResetModel();
-    qDeleteAll(cells_);
-    cells_.clear();
+    qDeleteAll(pathCells_);
+    pathCells_.clear();
     endResetModel();
 
     isClearing_ = false;

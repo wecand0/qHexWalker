@@ -1,53 +1,45 @@
-//
-// Created by user on 02/12/2025.
-//
-
-#ifndef Q_HEX_WALKER_H3MODEL_H
-#define Q_HEX_WALKER_H3MODEL_H
+#ifndef QHEXWALKER_H3TARGETSMODEL_H
+#define QHEXWALKER_H3TARGETSMODEL_H
 
 #include <QAbstractListModel>
 
 class H3Data;
 namespace H3_VIEWER {
-class H3Worker;
 }
-class H3Model final : public QAbstractListModel {
+class H3TargetsModel final : public QAbstractListModel {
     Q_OBJECT
-    Q_DISABLE_COPY_MOVE(H3Model)
+    Q_DISABLE_COPY_MOVE(H3TargetsModel)
 public:
-    enum Roles { ResRole = Qt::UserRole + 1, IndexRole, CellColor, PathRole };
+    enum Roles { ResRole = Qt::UserRole + 1, IndexRole, CellColor, PathRole, CoordinatesRole };
 
-    explicit H3Model(QObject *parent = nullptr);
-    ~H3Model() override;
+    explicit H3TargetsModel(QObject *parent = nullptr);
+    ~H3TargetsModel() override;
 
     [[nodiscard]] int rowCount(const QModelIndex &parent) const override;
     [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
     [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
 
 private slots:
-    void onCellComputed(quint8 res, H3Index index, const QVariantList &polygon, bool isSearching);
-
-public:
-    void Init();
+    //void onCellAdded(quint8 res, H3Index index, const QVariantList &polygon, bool isSearching);
 
 public slots:
+    Q_INVOKABLE void compute();
+    Q_INVOKABLE void remove(int index);
     Q_INVOKABLE void requestCell(quint8 mapZoom, const QGeoCoordinate &coordinate);
     Q_INVOKABLE void clearAllCells();
 
-signals:
-    void clearingStarted();
-    void clearingFinished();
+    signals:
+        void onCompute();
+        void clearingStarted();
+        void clearingFinished();
 
 private:
-    [[nodiscard]] std::optional<H3Data *> findCellByID(quint64 id) const;
-    [[nodiscard]] std::optional<H3Data *> findCellByRes(quint8 res) const;
+    // [[nodiscard]] std::optional<H3Data *> findCellByID(quint64 id) const;
+    // [[nodiscard]] std::optional<H3Data *> findCellByRes(quint8 res) const;
     [[nodiscard]] bool isCoordinateTargetValid(quint8 zoom, const QGeoCoordinate &coordinate) const;
-    [[nodiscard]] QString getColorForResolution(quint8 resolution) const;
+    //[[nodiscard]] QString getColorForResolution(quint8 resolution) const;
 
-    H3_VIEWER::H3Worker *worker_{};
-    QThread *thread_{};
-
-    QList<H3Data *> pathCells_;
+    QList<H3Data *> cells_;
 
     const uint8_t minZoom_c{3};
     const uint8_t maxZoom_c{15};
@@ -60,4 +52,4 @@ private:
     std::atomic_bool isClearing_{false};
 };
 
-#endif  // Q_HEX_WALKER_H3MODEL_H
+#endif //QHEXWALKER_H3TARGETSMODEL_H
