@@ -9,6 +9,7 @@ ApplicationWindow {
     id: window
 
     property var coordinate: QtPositioning.coordinate(0.0, 0.0)
+    property var zoomTarget: 0
     property var visibleBounds: ({
             north: 0,
             south: 0,
@@ -142,7 +143,7 @@ ApplicationWindow {
 
                             border.color: "#555555"
                             border.width: 1
-                            color: itemMouseArea.containsMouse ? "#404040" : "#333333"
+                            color: itemMouseArea.containsMouse ? "green" : "#333333"
                             height: itemColumn.height + 16
                             radius: 4
                             width: coordinateListView.width
@@ -154,8 +155,10 @@ ApplicationWindow {
                                 hoverEnabled: true
 
                                 onClicked: {
-                                    map.center = model.coordinate;
-                                    map.zoomLevel = parseFloat(model.zoom);
+                                    centerAnimation.to = model.coordinate
+                                    zoomAnimation.to = model.zoom
+                                    centerAnimation.start()
+                                    zoomAnimation.start()
                                 }
                             }
                             Column {
@@ -264,12 +267,12 @@ ApplicationWindow {
                                 }
 
                                 // Координаты
-                                Text {
-                                    color: "lightgreen"
-                                    font.pixelSize: 11
-                                    text: "Lat: " + model.coordinate.latitude.toFixed(3) + " Lng: " + model.coordinate.longitude.toFixed(3)
-                                    width: parent.width
-                                }
+                                // Text {
+                                //     color: "lightgreen"
+                                //     font.pixelSize: 11
+                                //     text: "Lat: " + model.coordinate.latitude.toFixed(3) + " Lng: " + model.coordinate.longitude.toFixed(3)
+                                //     width: parent.width
+                                // }
 
                                 // Разрешение и зум
                                 Row {
@@ -295,7 +298,22 @@ ApplicationWindow {
         Map {
             id: map
 
-
+            PropertyAnimation {
+                id: centerAnimation
+                target: map
+                property: "center"
+                to: QtPositioning.coordinate(55.0, 55.0) // The desired end zoom level
+                duration: 1000 // Animation duration in milliseconds
+                easing.type: Easing.InOutQuad // Optional: for smoother animation
+            }
+            PropertyAnimation {
+                id: zoomAnimation
+                target: map
+                property: "zoomLevel"
+                to: 10 // The desired end zoom level
+                duration: 1000 // Animation duration in milliseconds
+                easing.type: Easing.InOutQuad // Optional: for smoother animation
+            }
             function normalizeLon(lon) {
                 var x = lon;
                 while (x > 180)
@@ -488,9 +506,9 @@ ApplicationWindow {
                 anchors.left: parent.left
                 border.color: "#66FFFFFF"
                 border.width: 1
-                color: "darkslategray"
+                color: "black"
                 height: addTargetTxt.height
-                opacity: 0.5
+                opacity: 1
                 radius: 7
                 width: addTargetTxt.width
                 z: 1
@@ -510,9 +528,9 @@ ApplicationWindow {
                 anchors.left: parent.left
                 border.color: "#66FFFFFF"
                 border.width: 1
-                color: "darkslategray"
+                color: "black"
                 height: computePathTxt.height
-                opacity: 0.5
+                opacity: 1
                 radius: 7
                 width: computePathTxt.width
                 z: 1
@@ -532,9 +550,9 @@ ApplicationWindow {
                 anchors.left: parent.left
                 border.color: "#66FFFFFF"
                 border.width: 1
-                color: "darkslategray"
+                color: "black"
                 height: clearAllTxt.height
-                opacity: 0.5
+                opacity: 1
                 radius: 7
                 width: clearAllTxt.width
                 z: 1
@@ -596,8 +614,9 @@ ApplicationWindow {
                                 width: textMetrics.width + 10
                                 height: textMetrics.height + 6
                                 color: "white"
-                                opacity: 0.8
-                                radius: 3
+                                border.color: "black"
+                                opacity: 1
+                                radius: 7
 
                                 Text {
                                     id: cellText
