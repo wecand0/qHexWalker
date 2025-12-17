@@ -7,7 +7,7 @@
 
 #include <QAbstractListModel>
 
-class H3Data;
+class H3Cell;
 namespace H3_VIEWER {
 class H3Worker;
 }
@@ -39,15 +39,15 @@ signals:
     void clearingFinished();
 
 private:
-    [[nodiscard]] std::optional<H3Data *> findCellByID(quint64 id) const;
-    [[nodiscard]] std::optional<H3Data *> findCellByRes(quint8 res) const;
+    [[nodiscard]] std::optional<H3Cell *> findCellByID(quint64 id) const;
+    [[nodiscard]] std::optional<H3Cell *> findCellByRes(quint8 res) const;
     [[nodiscard]] bool isCoordinateTargetValid(quint8 zoom, const QGeoCoordinate &coordinate) const;
     [[nodiscard]] QString getColorForResolution(quint8 resolution) const;
 
     H3_VIEWER::H3Worker *worker_{};
     QThread *thread_{};
 
-    QList<H3Data *> pathCells_;
+    QList<H3Cell *> pathCells_;
 
     const uint8_t minZoom_c{3};
     const uint8_t maxZoom_c{15};

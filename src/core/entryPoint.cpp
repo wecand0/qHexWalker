@@ -1,10 +1,10 @@
-// Precompiled header must go first
-#include "pch.h"
-
 #include "entryPoint.h"
+
 #include "h3Model.h"
 #include "h3TargetsModel.h"
+
 #include "logger.h"
+
 #include "mapProvider.h"
 
 EntryPoint::EntryPoint(const std::string &loggerName, QObject *parent) : QObject(parent) {
@@ -40,8 +40,6 @@ void EntryPoint::InitDataModels() {
 
     targetsModel_ = new H3TargetsModel(this);
     engine_->rootContext()->setContextProperty("targetsModel", targetsModel_);
-
-    //connect(targetsModel_, &H3TargetsModel::onCompute, h3Model_, &H3Model::,)
 }
 void EntryPoint::InitMap() {
     mapProvider_ = new MapProvider(this);

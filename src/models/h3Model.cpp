@@ -1,5 +1,5 @@
 #include "h3Model.h"
-#include "h3Data.h"
+#include "h3Cell.h"
 #include "h3Worker.h"
 
 H3Model::H3Model(QObject *parent) : QAbstractListModel(parent) {
@@ -48,7 +48,9 @@ QVariant H3Model::data(const QModelIndex &index, const int role) const {
 }
 
 QHash<int, QByteArray> H3Model::roleNames() const {
+    // clang-format off
     return {{ResRole, "res"}, {IndexRole, "index"}, {CellColor, "color"}, {PathRole, "path"}};
+    // clang-format on
 }
 
 //////////////
@@ -79,7 +81,7 @@ bool H3Model::isCoordinateTargetValid(const quint8 zoom, const QGeoCoordinate &c
     return true;
 }
 
-std::optional<H3Data *> H3Model::findCellByRes(const quint8 res) const {
+std::optional<H3Cell *> H3Model::findCellByRes(const quint8 res) const {
     const auto it = std::ranges::find_if(pathCells_, [res](const auto &cell) { return cell->res() == res; });
     if (it == pathCells_.end()) {
         return std::nullopt;
@@ -87,7 +89,7 @@ std::optional<H3Data *> H3Model::findCellByRes(const quint8 res) const {
     return *it;
 }
 
-std::optional<H3Data *> H3Model::findCellByID(const quint64 id) const {
+std::optional<H3Cell *> H3Model::findCellByID(const quint64 id) const {
     const auto it = std::ranges::find_if(pathCells_, [id](const auto &cell) { return cell->index() == id; });
     if (it == pathCells_.end()) {
         return std::nullopt;
@@ -107,7 +109,7 @@ void H3Model::onCellComputed(const quint8 res, const H3Index index, const QVaria
         return;
     }
 
-    auto cell = new H3Data(this);
+    auto cell = new H3Cell(this);
     cell->setRes(res);
     cell->setIndex(index);
     cell->setPath(polygon);

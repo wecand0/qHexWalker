@@ -1,9 +1,6 @@
-//
-// Created by Vadim on 15.12.2025.
-//
-
 #include "h3TargetsModel.h"
-#include "h3Data.h"
+#include "h3Target.h"
+
 #include <helper.h>
 
 H3TargetsModel::H3TargetsModel(QObject *parent) : QAbstractListModel(parent) {
@@ -25,40 +22,56 @@ int H3TargetsModel::rowCount(const QModelIndex &parent) const {
     return static_cast<int>(cells_.size());
 }
 
-QVariant H3TargetsModel::data(const QModelIndex &index, int role) const {
+QVariant H3TargetsModel::data(const QModelIndex &index, const int role) const {
     if (!index.isValid() || index.row() >= cells_.size()) {
         return {};
     }
 
     const auto data = cells_.at(index.row());
     switch (role) {
-        case ResRole:
-            return QVariant::fromValue(data->res());
-        case IndexRole:
-            return QVariant::fromValue(data->index());
-        case CellColor:
-            return QVariant::fromValue(data->color());
-        case PathRole:
-            return QVariant::fromValue(data->path());
-        case CoordinatesRole:
-            return QVariant::fromValue(data->coordinate());
-        default:;
+    case ResRole:
+        return QVariant::fromValue(data->res());
+    case ZoomRole:
+        return QVariant::fromValue(data->zoom());
+    case OrderRole:
+        return QVariant::fromValue(data->order());
+    case IndexRole:
+        return QVariant::fromValue(data->index());
+    case CellColor:
+        return QVariant::fromValue(data->color());
+    case PathRole:
+        return QVariant::fromValue(data->path());
+    case CoordinatesRole:
+        return QVariant::fromValue(data->coordinate());
+    default:;
     }
     return {};
 }
 
 QHash<int, QByteArray> H3TargetsModel::roleNames() const {
-    return {{ResRole, "res"}, {IndexRole, "index"}, {CellColor, "color"}, {PathRole, "path"}, {CoordinatesRole, "coordinate"}};
+    // clang-format off
+    return { {ResRole, "res"},
+                {ZoomRole, "zoom"},
+                {OrderRole, "order"},
+                {IndexRole, "index"},
+                {CellColor, "color"},
+                {PathRole, "path"},
+                {CoordinatesRole, "coordinate"}};
+    // clang-format on
 }
 
-void H3TargetsModel::compute() {
-    emit onCompute();
-}
+void H3TargetsModel::compute() { emit onCompute(); }
 
-void H3TargetsModel::remove(int index) {
+void H3TargetsModel::remove(const int index) {
+    isClearing_ = true;
+    emit clearingStarted();
+
     beginResetModel();
     cells_.takeAt(index);
     endResetModel();
+
+    isClearing_ = false;
+    emit clearingFinished();
 }
 
 void H3TargetsModel::requestCell(const quint8 mapZoom, const QGeoCoordinate &coordinate) {
@@ -83,13 +96,16 @@ void H3TargetsModel::requestCell(const quint8 mapZoom, const QGeoCoordinate &coo
         return;
     }
 
-    auto polygon = Helper::indexToPolygon(h3Index);
+    const auto polygon = H3_VIEWER::Helper::indexToPolygon(h3Index);
     if (!polygon.has_value()) {
         return;
     }
 
-    auto cell = new H3Data(this);
+    auto cell = new H3Target(this);
     cell->setRes(res);
+    // FIXME use model index not from qlist
+    cell->setOrder(cells_.count());
+    cell->setZoom(mapZoom);
     cell->setIndex(h3Index);
     cell->setCoordinate(coordinate);
     cell->setPath(polygon.value());

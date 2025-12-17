@@ -87,17 +87,19 @@ ApplicationWindow {
             }
         ]
     }
-    RowLayout {
+    SplitView {
         anchors.fill: parent
+        orientation: Qt.Horizontal
+        //anchors.fill: parent
         spacing: 0
 
         // Панель со списком координат
         Rectangle {
             id: paths
 
-            Layout.fillHeight: true
-            Layout.minimumWidth: 250
-            Layout.preferredWidth: Screen.width * 0.2
+            implicitWidth: Screen.width * 0.2
+            SplitView.maximumWidth:  Screen.width * 0.3
+            SplitView.minimumWidth:  Screen.width * 0.2
             border.color: "#66FFFFFF"
             border.width: 1
             color: "#2A2A2A"
@@ -116,32 +118,13 @@ ApplicationWindow {
                     color: "white"
                     font.bold: true
                     font.pixelSize: 16
-                    text: "H3 path list"
+                    text: "H3 targets list"
                 }
                 Rectangle {
                     Layout.fillWidth: true
                     color: "#66FFFFFF"
                     height: 1
                 }
-
-                // Кнопка добавления текущей координаты
-                Button {
-                    Layout.fillWidth: true
-                    text: "Add Position"
-
-                    contentItem: Text {
-                        color: "white" // Set your desired color here
-                        font.pointSize: 12
-                        horizontalAlignment: Text.AlignHCenter
-                        text: parent.text // Referencing the button's text
-                        verticalAlignment: Text.AlignVCenter
-                    }
-
-                    onClicked: {
-                        targetsModel.requestCell(map.zoomLevel.toFixed(1), mapMouseArea.currentCoordinate)
-                    }
-                }
-
                 // Список координат
                 ScrollView {
                     Layout.fillHeight: true
@@ -275,7 +258,7 @@ ApplicationWindow {
                                 Text {
                                     color: "lightblue"
                                     font.pixelSize: 11
-                                    text: "H3: " + model.index
+                                    text: "H3: 0x" + model.index.toString(16)
                                     width: parent.width
                                     wrapMode: Text.WrapAnywhere
                                 }
@@ -284,7 +267,7 @@ ApplicationWindow {
                                 Text {
                                     color: "lightgreen"
                                     font.pixelSize: 11
-                                    text: "Lat: " + model.coordinate.latitude.toFixed(6) + " Lng: " + model.coordinate.longitude.toFixed(6)
+                                    text: "Lat: " + model.coordinate.latitude.toFixed(3) + " Lng: " + model.coordinate.longitude.toFixed(3)
                                     width: parent.width
                                 }
 
@@ -297,57 +280,21 @@ ApplicationWindow {
                                         font.pixelSize: 11
                                         text: "Res: " + model.res
                                     }
-                                    // Text {
-                                    //     color: "orange"
-                                    //     font.pixelSize: 11
-                                    //     text: "Zoom: " + model.zoom
-                                    // }
+                                    Text {
+                                        color: "orange"
+                                        font.pixelSize: 11
+                                        text: "Zoom: " + model.zoom
+                                    }
                                 }
                             }
                         }
                     }
                 }
-                Button {
-                    Layout.fillWidth: true
-                    text: "Compute"
-
-                    contentItem: Text {
-                        color: "green" // Set your desired color here
-                        font.pointSize: 12
-                        horizontalAlignment: Text.AlignHCenter
-                        text: parent.text // Referencing the button's text
-                        verticalAlignment: Text.AlignVCenter
-                    }
-
-                    onClicked: {
-                        //coordinateListModel.clear();
-                    }
-                }
-
-                Button {
-                    Layout.fillWidth: true
-                    text: "Clear All"
-
-                    contentItem: Text {
-                        color: "red" // Set your desired color here
-                        font.pointSize: 10
-                        horizontalAlignment: Text.AlignHCenter
-                        text: parent.text // Referencing the button's text
-                        verticalAlignment: Text.AlignVCenter
-                    }
-
-                    onClicked: {
-                        coordinateListModel.clear();
-                        h3Model.clearAllCells()
-                    }
-                }
-
-                // Кнопки управления списком
-
             }
         }
         Map {
             id: map
+
 
             function normalizeLon(lon) {
                 var x = lon;
@@ -444,6 +391,26 @@ ApplicationWindow {
 
                 target: h3Model
             }
+            Connections {
+                function onClearingFinished() {
+                    //console.log("Map: Clearing finished - recreating MapItemView");
+                    // Восстанавливаем MapItemView
+                    if(targetCells) {
+                        targetCells.model = targetsModel;
+                        targetCells.visible = true;
+                    }
+                }
+                function onClearingStarted() {
+                    //console.log("Map: Clearing started - destroying MapItemView");
+                    // Полностью уничтожаем MapItemView
+                    if(targetCells) {
+                        targetCells.visible = false;
+                        targetCells.model = null;
+                    }
+                }
+
+                target: targetsModel
+            }
             DragHandler {
                 id: drag
 
@@ -462,13 +429,13 @@ ApplicationWindow {
                 anchors.fill: parent
                 cursorShape: Qt.CrossCursor
 
-                //hoverEnabled: true
+                hoverEnabled: true
 
                 onClicked: event => {
+                    // if (event.button === Qt.LeftButton) {
+                    //     h3Model.requestCell(map.zoomLevel, map.toCoordinate(Qt.point(mouseX, mouseY)));
+                    // }
                     if (event.button === Qt.LeftButton) {
-                        h3Model.requestCell(map.zoomLevel, map.toCoordinate(Qt.point(mouseX, mouseY)));
-                    }
-                    if (event.button === Qt.RightButton) {
                         currentCoordinate = map.toCoordinate(Qt.point(event.x, event.y));
                     }
                 }
@@ -492,6 +459,162 @@ ApplicationWindow {
                     let dx = postZoomPoint.x - preZoomPoint.x;
                     let dy = postZoomPoint.y - preZoomPoint.y;
                     map.center = map.toCoordinate(Qt.point(map.width / 2 + dx, map.height / 2 + dy));
+                }
+            }
+            Shortcut {
+                sequence: "a"
+                onActivated: {
+                    targetsModel.requestCell(map.zoomLevel.toFixed(1), mapMouseArea.currentCoordinate)
+                }
+            }
+            Shortcut {
+                sequence: "c"
+                onActivated: {
+                    h3Model.requestCell(map.zoomLevel, mapMouseArea.currentCoordinate);
+                }
+            }
+            Shortcut {
+                sequence: "r"
+                onActivated: {
+                    targetsModel.clearAllCells();
+                    h3Model.clearAllCells();
+                }
+            }
+            Rectangle {
+                id: addTarget
+
+                anchors.margins: 8
+                anchors.top: parent.top
+                anchors.left: parent.left
+                border.color: "#66FFFFFF"
+                border.width: 1
+                color: "darkslategray"
+                height: addTargetTxt.height
+                opacity: 0.5
+                radius: 7
+                width: addTargetTxt.width
+                z: 1
+
+                Text {
+                    id: addTargetTxt
+                    font.pointSize: 20
+                    color: "green"
+                    text: " Press 'a' to add a target "
+                }
+            }
+            Rectangle {
+                id: computePath
+
+                anchors.margins: 8
+                anchors.top: addTarget.bottom
+                anchors.left: parent.left
+                border.color: "#66FFFFFF"
+                border.width: 1
+                color: "darkslategray"
+                height: computePathTxt.height
+                opacity: 0.5
+                radius: 7
+                width: computePathTxt.width
+                z: 1
+
+                Text {
+                    id: computePathTxt
+                    font.pointSize: 20
+                    color: "yellow"
+                    text: " Press 'c' to compute  "
+                }
+            }
+            Rectangle {
+                id: clearAll
+
+                anchors.margins: 8
+                anchors.top: computePath.bottom
+                anchors.left: parent.left
+                border.color: "#66FFFFFF"
+                border.width: 1
+                color: "darkslategray"
+                height: clearAllTxt.height
+                opacity: 0.5
+                radius: 7
+                width: clearAllTxt.width
+                z: 1
+
+                Text {
+                    id: clearAllTxt
+                    font.pointSize: 20
+                    color: "red"
+                    text: " Press 'r' to clear all cells "
+                }
+            }
+            // MapItemView {
+            //     id: targetCells
+            //
+            //     model: targetsModel ? targetsModel : null
+            //     visible: true
+            //
+            //     delegate: MapPolygon {
+            //         id: cellLine
+            //
+            //         autoFadeIn: false
+            //         border.color: "black"
+            //         border.width: 1
+            //         color: model ? model.color : "transparent"
+            //         opacity: model ? model.res * 0.1 : 1
+            //         path: model ? model.path : []
+            //         referenceSurface: QtLocation.ReferenceSurface.Globe
+            //         visible: true
+            //         z: model ? model.res : 2
+            //     }
+            // }
+            MapItemView {
+                id: targetCells
+                model: targetsModel ? targetsModel : null
+                visible: true
+
+                delegate: Component {
+                    id: cellDelegate
+                    MapItemGroup {
+                        MapPolygon {
+                            id: cellLine
+                            autoFadeIn: false
+                            border.color: "black"
+                            border.width: 1
+                            color: model ? model.color : "transparent"
+                            opacity: model ? model.res * 0.1 : 1
+                            path: model ? model.path : []
+                            referenceSurface: QtLocation.ReferenceSurface.Globe
+                            visible: true
+                            z: model ? model.res : 2
+                        }
+
+                        MapQuickItem {
+                            coordinate: model ? model.coordinate : QtPositioning.coordinate()
+                            anchorPoint: Qt.point(sourceItem.width / 2, sourceItem.height / 2)
+                            z: model ? model.res + 1 : 3
+
+                            sourceItem: Rectangle {
+                                width: textMetrics.width + 10
+                                height: textMetrics.height + 6
+                                color: "white"
+                                opacity: 0.8
+                                radius: 3
+
+                                Text {
+                                    id: cellText
+                                    anchors.centerIn: parent
+                                    text: model ? model.order: 0
+                                    font.pixelSize: 12
+                                    color: "black"
+                                }
+
+                                TextMetrics {
+                                    id: textMetrics
+                                    font: cellText.font
+                                    text: cellText.text
+                                }
+                            }
+                        }
+                    }
                 }
             }
             MapItemView {

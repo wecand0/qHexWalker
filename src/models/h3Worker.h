@@ -8,8 +8,6 @@
 #include "astar.h"
 #include "helper.h"
 
-using namespace std::chrono_literals;
-
 struct h3_deleter {
     void operator()(LinkedGeoPolygon *poly) const {
         if (poly == nullptr) {
