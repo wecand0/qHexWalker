@@ -3,10 +3,16 @@ import QtQuick.Window
 import QtLocation
 import QtPositioning
 import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Layouts
 
 ApplicationWindow {
     id: window
+
+    // Тёмная тема
+    Material.theme: Material.Dark
+    Material.accent: Material.Teal
+    Material.primary: Material.BlueGrey
 
     property var coordinate: QtPositioning.coordinate(0.0, 0.0)
     property var zoomTarget: 0
@@ -91,7 +97,6 @@ ApplicationWindow {
     SplitView {
         anchors.fill: parent
         orientation: Qt.Horizontal
-        spacing: 0
 
         // Панель со списком координат
         Rectangle {
@@ -100,16 +105,13 @@ ApplicationWindow {
             implicitWidth: Screen.width * 0.2
             SplitView.maximumWidth:  Screen.width * 0.3
             SplitView.minimumWidth:  Screen.width * 0.2
-            border.color: "#66FFFFFF"
-            border.width: 1
-            color: "#2A2A2A"
+            color: "#1E252B"
             opacity: 0.85
-            radius: 7
-            z: 1
+            radius: 16
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: 8
+                anchors.margins: 20
                 spacing: 8
 
                 // Заголовок
@@ -117,19 +119,19 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     color: "white"
                     font.bold: true
-                    font.pixelSize: 16
+                    font.pixelSize: 22
                     text: "H3 targets list"
                 }
                 Rectangle {
+                    color: "#444444"
                     Layout.fillWidth: true
-                    color: "#66FFFFFF"
                     height: 1
                 }
                 // Список координат
                 ScrollView {
                     Layout.fillHeight: true
                     Layout.fillWidth: true
-                    clip: true
+                    //clip: true
 
                     ListView {
                         id: coordinateListView
@@ -141,10 +143,12 @@ ApplicationWindow {
                             id: listItem
                             border.color: "#555555"
                             border.width: 1
-                            color: itemMouseArea.containsMouse ? "green" : "#333333"
+                            color: itemMouseArea.containsMouse ? "#496e93" : "#242B33"
                             height: itemColumn.height + 16
                             radius: 4
                             width: coordinateListView.width
+
+                            Behavior on color { ColorAnimation { duration: 150 } }
 
                             MouseArea {
                                 id: itemMouseArea
@@ -303,16 +307,16 @@ ApplicationWindow {
                 target: map
                 property: "center"
                 to: QtPositioning.coordinate(55.0, 55.0) // The desired end zoom level
-                duration: 1000 // Animation duration in milliseconds
-                easing.type: Easing.InOutQuad // Optional: for smoother animation
+                duration: 500 // Animation duration in milliseconds
+                easing.type:Easing.OutCubic // Optional: for smoother animation
             }
             PropertyAnimation {
                 id: zoomAnimation
                 target: map
                 property: "zoomLevel"
                 to: 10 // The desired end zoom level
-                duration: 1000 // Animation duration in milliseconds
-                easing.type: Easing.InOutQuad // Optional: for smoother animation
+                duration: 500 // Animation duration in milliseconds
+                easing.type: Easing.OutCubic // Optional: for smoother animation
             }
             function normalizeLon(lon) {
                 var x = lon;
@@ -485,21 +489,6 @@ ApplicationWindow {
                     targetsModel.requestCell(map.zoomLevel.toFixed(1), mapMouseArea.currentCoordinate)
                 }
             }
-            Shortcut {
-                sequence: "c"
-                onActivated: {
-                    //requestCells
-                    targetsModel.compute();
-                    //h3Model.requestCell(map.zoomLevel, mapMouseArea.currentCoordinate);
-                }
-            }
-            Shortcut {
-                sequence: "r"
-                onActivated: {
-                    targetsModel.clearAllCells();
-                    h3Model.clearAllCells();
-                }
-            }
             Rectangle {
                 id: addTarget
 
@@ -520,6 +509,12 @@ ApplicationWindow {
                     font.pointSize: 20
                     color: "green"
                     text: " Press 'a' to add a target "
+                }
+            }
+            Shortcut {
+                sequence: "c"
+                onActivated: {
+                    targetsModel.compute();
                 }
             }
             Rectangle {
@@ -544,6 +539,13 @@ ApplicationWindow {
                     text: " Press 'c' to compute  "
                 }
             }
+            Shortcut {
+                sequence: "r"
+                onActivated: {
+                    targetsModel.clearAllCells();
+                    h3Model.clearAllCells();
+                }
+            }
             Rectangle {
                 id: clearAll
 
@@ -566,26 +568,6 @@ ApplicationWindow {
                     text: " Press 'r' to clear all cells "
                 }
             }
-            // MapItemView {
-            //     id: targetCells
-            //
-            //     model: targetsModel ? targetsModel : null
-            //     visible: true
-            //
-            //     delegate: MapPolygon {
-            //         id: cellLine
-            //
-            //         autoFadeIn: false
-            //         border.color: "black"
-            //         border.width: 1
-            //         color: model ? model.color : "transparent"
-            //         opacity: model ? model.res * 0.1 : 1
-            //         path: model ? model.path : []
-            //         referenceSurface: QtLocation.ReferenceSurface.Globe
-            //         visible: true
-            //         z: model ? model.res : 2
-            //     }
-            // }
             MapItemView {
                 id: targetCells
                 model: targetsModel ? targetsModel : null

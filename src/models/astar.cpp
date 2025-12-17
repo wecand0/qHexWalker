@@ -6,116 +6,166 @@ H3AStar::H3AStar(QObject *parent) : QObject(parent) {}
 
 H3AStar::~H3AStar() = default;
 
+void H3AStar::setBlockedCells(const std::unordered_set<H3Index> &blocked) { blockedCells = blocked; }
+
 std::vector<H3Index> H3AStar::findShortestPath(const H3Index start, const H3Index end) {
-    // Проверка валидности индексов
     if (!isValidCell(start) || !isValidCell(end)) {
-        throw std::domain_error("Невалидные H3 индексы");
+        throw std::domain_error("Invalid H3 indexes");
     }
-
     if (start == end) {
-        throw std::runtime_error("Стартовая и конечная точка равны");
+        throw std::runtime_error("Start and end points are the same");
+    }
+    if (blockedCells.contains(start) || blockedCells.contains(end)) {
+        throw std::runtime_error("Start or end cell is blocked");
     }
 
-    // Сохраняем оригинальные индексы и их разрешения
     const H3Index originalStart = start;
     const H3Index originalEnd = end;
     const int startRes = getResolution(start);
     const int endRes = getResolution(end);
 
-    // Поднимаемся к разрешению 2 если нужно
     const H3Index startRes2 = startRes != 2 ? cellToParentRes2(start) : start;
     const H3Index endRes2 = endRes != 2 ? cellToParentRes2(end) : end;
 
     if (startRes2 == H3_NULL || endRes2 == H3_NULL) {
-        throw std::domain_error("Ошибка преобразования к разрешению 2");
+        throw std::domain_error("Error converting to resolution 2");
+    }
+    if (blockedCells.contains(startRes2) || blockedCells.contains(endRes2)) {
+        return {};  // Coarse start/end blocked
     }
 
-    // Получаем координаты целевой ячейки для эвристики
     LatLng endCoord;
     if (cellToLatLng(endRes2, &endCoord) != E_SUCCESS) {
-        throw std::runtime_error("Ошибка получения координат целевой ячейки");
+        throw std::runtime_error("Error getting target coordinates");
     }
 
-    // Ищем путь на разрешении 2
     const std::vector<H3Index> pathRes2 = findPathAtResolution2(startRes2, endRes2, endCoord);
     if (pathRes2.empty()) {
         return {};
     }
 
-    // Детализируем путь с учетом исходных разрешений
     return refinePath(pathRes2, originalStart, originalEnd, startRes, endRes);
 }
 
 std::vector<H3Index> H3AStar::findPathAtResolution2(const H3Index start, const H3Index end, const LatLng &endCoord) {
-    // Приоритетная очередь для A* (мин-куча по fScore)
     std::priority_queue<Node, std::vector<Node>, std::greater<>> openSet;
-
-    // g-оценки (реальное расстояние от старта)
     std::unordered_map<H3Index, double, H3IndexHash> gScores;
-    gScores.reserve(300);
-
-    // Карта предшественников для восстановления пути
     std::unordered_map<H3Index, H3Index, H3IndexHash> previous;
-    previous.reserve(300);
-
-    // Закрытое множество (посещенные узлы)
     std::unordered_set<H3Index, H3IndexHash> closedSet;
+
+    gScores.reserve(300);
+    previous.reserve(300);
     closedSet.reserve(300);
 
-    // Инициализация стартового узла
     gScores[start] = 0.0;
-    double startHeuristic = heuristic(start, endCoord);
-    openSet.emplace(start, 0, startHeuristic);
+    openSet.emplace(Node{start, 0.0, heuristic(start, endCoord)});
     int nodesExplored = 0;
 
     while (!openSet.empty()) {
         Node current = openSet.top();
         openSet.pop();
-
         nodesExplored++;
 
-        // Если достигли конечной точки
         if (current.cell == end) {
-            // spdlog::info("Узлов исследовано: {}", nodesExplored);
             return reconstructPath(previous, start, end);
         }
 
-        // Если уже посещали этот узел, пропускаем
         if (closedSet.contains(current.cell)) {
             continue;
         }
-
         closedSet.insert(current.cell);
-        // emit newCell(current.cell);
+        emit newCell(current.cell);
 
-        // Получаем соседей текущей ячейки
         for (const auto neighbors = getNeighbors(current.cell); const H3Index &neighbor : neighbors) {
-            if (closedSet.contains(neighbor)) {
+            if (neighbor == H3_NULL)
+                continue;
+
+            // Skip blocked and closed cells
+            if (closedSet.contains(neighbor) || blockedCells.contains(neighbor)) {
                 continue;
             }
 
-            // Вычисляем новую g-оценку (реальное расстояние)
             double edgeDistance = getDistanceBetweenCells(current.cell, neighbor);
-            // Если нашли более короткий путь к соседу
-            if (double tentativeGScore = gScores[current.cell] + edgeDistance;
-                !gScores.contains(neighbor) || tentativeGScore < gScores[neighbor]) {
+            double tentativeGScore = gScores[current.cell] + edgeDistance;
 
-                // Обновляем путь к соседу
+            if (!gScores.contains(neighbor) || tentativeGScore < gScores[neighbor]) {
                 previous[neighbor] = current.cell;
                 gScores[neighbor] = tentativeGScore;
-
-                // Вычисляем f-оценку (g + эвристика)
                 double h = heuristic(neighbor, endCoord);
-                double fScore = tentativeGScore + h;
-
-                openSet.emplace(neighbor, tentativeGScore, fScore);
+                openSet.emplace(Node{neighbor, tentativeGScore, tentativeGScore + h});
             }
         }
     }
 
-    // Путь не найден
-    spdlog::warn("Путь не найден между индексами, исследовано {} узлов", nodesExplored);
+    spdlog::warn("No path found, explored {} nodes", nodesExplored);
     return {};
+}
+
+std::vector<H3Index> H3AStar::findLocalPathAtResolution(H3Index start, H3Index end, H3Index limitParent) {
+    if (start == end) {
+        return {start};
+    }
+    if (blockedCells.contains(start) || blockedCells.contains(end)) {
+        return {};  // Blocked endpoint in local search
+    }
+
+    LatLng endCoord;
+    if (cellToLatLng(end, &endCoord) != E_SUCCESS) {
+        return {start, end};
+    }
+
+    std::priority_queue<Node, std::vector<Node>, std::greater<>> openSet;
+    std::unordered_map<H3Index, double, H3IndexHash> gScores;
+    std::unordered_map<H3Index, H3Index, H3IndexHash> previous;
+    std::unordered_set<H3Index, H3IndexHash> closedSet;
+
+    gScores[start] = 0.0;
+    openSet.push({start, 0.0, heuristic(start, endCoord)});
+
+    int maxIterations = MAX_CELLS_RES_2;
+    int iterations = 0;
+
+    while (!openSet.empty() && iterations++ < maxIterations) {
+        Node current = openSet.top();
+        openSet.pop();
+
+        if (current.cell == end) {
+            return reconstructPath(previous, start, end);
+        }
+
+        if (closedSet.contains(current.cell))
+            continue;
+        closedSet.insert(current.cell);
+
+        for (const auto neighbors = getNeighbors(current.cell); const H3Index &neighbor : neighbors) {
+            if (neighbor == H3_NULL)
+                continue;
+
+            if (closedSet.contains(neighbor) || blockedCells.contains(neighbor)) {
+                continue;
+            }
+
+            int parentRes = getResolution(limitParent);
+            H3Index neighborParent = H3_NULL;
+            cellToParent(neighbor, parentRes, &neighborParent);
+            if (neighborParent != limitParent) {
+                continue;
+            }
+
+            double edgeDistance = getDistanceBetweenCells(current.cell, neighbor);
+            double tentativeGScore = gScores[current.cell] + edgeDistance;
+
+            if (!gScores.contains(neighbor) || tentativeGScore < gScores[neighbor]) {
+                previous[neighbor] = current.cell;
+                gScores[neighbor] = tentativeGScore;
+                double h = heuristic(neighbor, endCoord);
+                openSet.push({neighbor, tentativeGScore, tentativeGScore + h});
+            }
+        }
+    }
+
+    // Fallback if no path (could be due to blocks)
+    return {start, end};
 }
 std::vector<H3Index> H3AStar::refineEndSegmentGradual(const H3Index prevInPath, const H3Index parentEnd,
                                                       const H3Index originalEnd, const int endRes) {
@@ -279,73 +329,6 @@ H3Index H3AStar::findBoundaryCellInDirection(const std::vector<H3Index> &cells, 
     }
 
     return bestCell != H3_NULL ? bestCell : cells.front();
-}
-std::vector<H3Index> H3AStar::findLocalPathAtResolution(H3Index start, H3Index end, H3Index limitParent) {
-    if (start == end) {
-        return {start};
-    }
-
-    LatLng endCoord;
-    if (cellToLatLng(end, &endCoord) != E_SUCCESS) {
-        return {start, end};
-    }
-
-    std::priority_queue<Node, std::vector<Node>, std::greater<>> openSet;
-    std::unordered_map<H3Index, double, H3IndexHash> gScores;
-    std::unordered_map<H3Index, H3Index, H3IndexHash> previous;
-    std::unordered_set<H3Index, H3IndexHash> closedSet;
-
-    gScores[start] = 0.0;
-    double startHeuristic = heuristic(start, endCoord);
-    openSet.push({start, 0.0, startHeuristic});
-
-    int maxIterations = MAX_CELLS_RES_2;  // Ограничение для предотвращения зацикливания
-    int iterations = 0;
-
-    while (!openSet.empty() && iterations++ < maxIterations) {
-        Node current = openSet.top();
-        openSet.pop();
-
-        if (current.cell == end) {
-            return reconstructPath(previous, start, end);
-        }
-
-        if (closedSet.contains(current.cell)) {
-            continue;
-        }
-
-        closedSet.emplace(current.cell);
-        for (const auto neighbors = getNeighbors(current.cell); const H3Index &neighbor : neighbors) {
-            if (closedSet.contains(neighbor)) {
-                continue;
-            }
-
-            // Проверяем, что сосед внутри родительской ячейки
-            int parentRes = getResolution(limitParent);
-            H3Index neighborParent = H3_NULL;
-            cellToParent(neighbor, parentRes, &neighborParent);
-            if (neighborParent != limitParent) {
-                continue;
-            }
-
-            const double edgeDistance = getDistanceBetweenCells(current.cell, neighbor);
-
-            if (const double tentativeGScore = gScores[current.cell] + edgeDistance;
-                !gScores.contains(neighbor) || tentativeGScore < gScores[neighbor]) {
-
-                previous[neighbor] = current.cell;
-                gScores[neighbor] = tentativeGScore;
-
-                double h = heuristic(neighbor, endCoord);
-                double fScore = tentativeGScore + h;
-
-                openSet.push({neighbor, tentativeGScore, fScore});
-            }
-        }
-    }
-
-    // Если не нашли путь, возвращаем прямое соединение
-    return {start, end};
 }
 std::vector<H3Index> H3AStar::getChildrenAtResolution(const H3Index parent, const int resolution) {
     std::vector<H3Index> children;
