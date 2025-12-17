@@ -109,6 +109,10 @@ void H3Model::onCellComputed(const quint8 res, const H3Index index, const QVaria
         return;
     }
 
+    if (findCellByID(index).has_value()) {
+        return;
+    }
+
     auto cell = new H3Cell(this);
     cell->setRes(res);
     cell->setIndex(index);
@@ -125,49 +129,63 @@ void H3Model::onCellComputed(const quint8 res, const H3Index index, const QVaria
     endInsertRows();
 }
 
-void H3Model::requestCell(const quint8 mapZoom, const QGeoCoordinate &coordinate) {
-    if (!worker_) {
-        return;
-    }
-    if (!isCoordinateTargetValid(mapZoom, coordinate)) {
-        return;
-    }
-    if (isClearing_) {
-        return;
-    }
-
-    SPDLOG_INFO("requestCell map zoom {}", mapZoom);
-
-    uint8_t res = 0;
-    try {
-        res = zoomToRes_.at(mapZoom);
-    } catch (const std::out_of_range &err) {
-        spdlog::error("Выбран недопустимый зум под разрешение {}", err.what());
-        return;
-    }
-
-    H3Index h3Index = H3_NULL;
-    const LatLng ll{.lat = degsToRads(coordinate.latitude()), .lng = degsToRads(coordinate.longitude())};
-    if (const auto errIdx = latLngToCell(&ll, res, &h3Index); errIdx != E_SUCCESS || h3Index == H3_NULL) {
-        spdlog::warn("Impossible to convert this lat:{} lng:{} coordinate to H3Index {}", coordinate.latitude(),
-                     coordinate.longitude(), errIdx);
-        return;
-    }
-    if (findCellByID(h3Index).has_value()) {
-        return;
-    }
-
+void H3Model::requestCells(const std::vector<H3Index> &indexes) {
     // Если есть старые ячейки, очищаем их перед добавлением новой
     if (!pathCells_.empty()) {
         clearAllCells();
 
         if (!isClearing_) {
-            worker_->requestCell(h3Index);
+            worker_->requestCell(indexes);
         }
     } else {
         // Если модель пустая, запрашиваем сразу
-        worker_->requestCell(h3Index);
+        worker_->requestCell(indexes);
     }
+}
+
+void H3Model::requestCell(const quint8 mapZoom, const QGeoCoordinate &coordinate) {
+    // if (!worker_) {
+    //     return;
+    // }
+    // if (!isCoordinateTargetValid(mapZoom, coordinate)) {
+    //     return;
+    // }
+    // if (isClearing_) {
+    //     return;
+    // }
+    //
+    // SPDLOG_INFO("requestCell map zoom {}", mapZoom);
+    //
+    // uint8_t res = 0;
+    // try {
+    //     res = zoomToRes_.at(mapZoom);
+    // } catch (const std::out_of_range &err) {
+    //     spdlog::error("Выбран недопустимый зум под разрешение {}", err.what());
+    //     return;
+    // }
+    //
+    // H3Index h3Index = H3_NULL;
+    // const LatLng ll{.lat = degsToRads(coordinate.latitude()), .lng = degsToRads(coordinate.longitude())};
+    // if (const auto errIdx = latLngToCell(&ll, res, &h3Index); errIdx != E_SUCCESS || h3Index == H3_NULL) {
+    //     spdlog::warn("Impossible to convert this lat:{} lng:{} coordinate to H3Index {}", coordinate.latitude(),
+    //                  coordinate.longitude(), errIdx);
+    //     return;
+    // }
+    // if (findCellByID(h3Index).has_value()) {
+    //     return;
+    // }
+    //
+    // // Если есть старые ячейки, очищаем их перед добавлением новой
+    // if (!pathCells_.empty()) {
+    //     clearAllCells();
+    //
+    //     if (!isClearing_) {
+    //         worker_->requestCell(h3Index);
+    //     }
+    // } else {
+    //     // Если модель пустая, запрашиваем сразу
+    //     worker_->requestCell(h3Index);
+    // }
 }
 
 void H3Model::clearAllCells() {

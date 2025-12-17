@@ -27,14 +27,14 @@ public:
     explicit H3Worker(QObject *parent = nullptr);
     ~H3Worker() override;
     struct PendingRequest {
-        H3Index index{};
+        std::vector<H3Index> indexes;
         bool has{};
     };
 
 public slots:
     void doWork();
     // Запросить пересчет ячейки по координатам (в градусах) и разрешению
-    void requestCell(H3Index index);
+    void requestCell(const std::vector<H3Index> &index);
 
 signals:
     void finished();

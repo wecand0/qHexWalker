@@ -60,14 +60,27 @@ QHash<int, QByteArray> H3TargetsModel::roleNames() const {
     // clang-format on
 }
 
-void H3TargetsModel::compute() { emit onCompute(); }
+void H3TargetsModel::compute() {
+    std::vector<H3Index> indexes;
+    for (const auto &cell : cells_) {
+        indexes.emplace_back(cell->index());
+    }
+    emit onCompute(indexes);
+}
 
-void H3TargetsModel::remove(const int index) {
+void H3TargetsModel::remove(const int modelIndex) {
     isClearing_ = true;
     emit clearingStarted();
 
+    SPDLOG_INFO("Remove {}", modelIndex);
+
     beginResetModel();
-    cells_.takeAt(index);
+    // for (auto &cell : cells_) {
+    //     if (cell->order() == modelIndex) {
+    //         cells_.takeAt()
+    //     }
+    // }
+    cells_.takeAt(modelIndex);
     endResetModel();
 
     isClearing_ = false;

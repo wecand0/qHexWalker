@@ -31,6 +31,7 @@ public:
     void Init();
 
 public slots:
+    Q_INVOKABLE void requestCells(const std::vector<H3Index> &indexes);
     Q_INVOKABLE void requestCell(quint8 mapZoom, const QGeoCoordinate &coordinate);
     Q_INVOKABLE void clearAllCells();
 

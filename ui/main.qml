@@ -251,8 +251,9 @@ ApplicationWindow {
                                         }
 
                                         onClicked: {
+                                            console.log(index)
                                             targetsModel.remove(index);
-                                            updateOrder();
+                                            //updateOrder();
                                         }
                                     }
                                 }
@@ -488,7 +489,9 @@ ApplicationWindow {
             Shortcut {
                 sequence: "c"
                 onActivated: {
-                    h3Model.requestCell(map.zoomLevel, mapMouseArea.currentCoordinate);
+                    //requestCells
+                    targetsModel.compute();
+                    //h3Model.requestCell(map.zoomLevel, mapMouseArea.currentCoordinate);
                 }
             }
             Shortcut {

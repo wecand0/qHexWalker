@@ -24,12 +24,12 @@ private slots:
 
 public slots:
     Q_INVOKABLE void compute();
-    Q_INVOKABLE void remove(int index);
+    Q_INVOKABLE void remove(int modelIndex);
     Q_INVOKABLE void requestCell(quint8 mapZoom, const QGeoCoordinate &coordinate);
     Q_INVOKABLE void clearAllCells();
 
 signals:
-    void onCompute();
+    void onCompute(const std::vector<H3Index> &indexes);
     void clearingStarted();
     void clearingFinished();
 

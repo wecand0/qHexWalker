@@ -34,24 +34,46 @@ void H3Worker::doWork() {
             continue;
         }
 
-        const H3Index start = req.index;  // 0x8b194ad14da3fffL;
-        constexpr H3Index end = 0x8eb8a6b13046757L;
-
+        H3Index prevIndex = req.indexes.front();
         std::vector<H3Index> path;
-        try {
-            path = astar_->findShortestPath(start, end);
-
-            for (const auto index : path) {
-                auto childPolygon = Helper::indexToPolygon(index);
-                if (!childPolygon.has_value()) {
-                    break;
+        for (auto indexId = 1 ; indexId < req.indexes.size(); indexId++) {
+            try {
+                path = astar_->findShortestPath(prevIndex, req.indexes.at(indexId));
+                prevIndex = req.indexes.at(indexId);
+                for (const auto index : path) {
+                    auto childPolygon = Helper::indexToPolygon(index);
+                    if (!childPolygon.has_value()) {
+                        break;
+                    }
+                    std::this_thread::sleep_for(3ms);
+                    emit cellComputed(getResolution(index), index, childPolygon.value(), false);
                 }
-                std::this_thread::sleep_for(7ms);
-                emit cellComputed(getResolution(index), index, childPolygon.value(), false);
+            } catch (const std::exception &e) {
+                spdlog::warn("{}", e.what());
             }
-        } catch (const std::exception &e) {
-            spdlog::warn("{}", e.what());
         }
+
+
+
+
+        // const H3Index start = req.index;  // 0x8b194ad14da3fffL;
+        // constexpr H3Index end = 0x8eb8a6b13046757L;
+        //
+        // std::vector<H3Index> path;
+        // try {
+        //     path = astar_->findShortestPath(start, end);
+        //
+        //     for (const auto index : path) {
+        //         auto childPolygon = Helper::indexToPolygon(index);
+        //         if (!childPolygon.has_value()) {
+        //             break;
+        //         }
+        //         std::this_thread::sleep_for(7ms);
+        //         emit cellComputed(getResolution(index), index, childPolygon.value(), false);
+        //     }
+        // } catch (const std::exception &e) {
+        //     spdlog::warn("{}", e.what());
+        // }
 
         {
             std::lock_guard lk(mutex_);
@@ -62,14 +84,14 @@ void H3Worker::doWork() {
     emit finished();
 }
 
-void H3Worker::requestCell(const H3Index index) {
+void H3Worker::requestCell(const std::vector<H3Index> &index) {
     {
         std::lock_guard lk(mutex_);
         if (isRequested.load()) {
             SPDLOG_WARN("cancel <requestCell>");
             return;
         }
-        pending_.index = index;
+        pending_.indexes = index;
         pending_.has = true;
         isRequested.store(true);
     }
