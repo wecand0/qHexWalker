@@ -1,6 +1,8 @@
 #include "h3Model.h"
-#include "h3Data.h"
+#include "h3Cell.h"
 #include "h3Worker.h"
+
+#include <algorithm>
 
 H3Model::H3Model(QObject *parent) : QAbstractListModel(parent) {
     auto zoomToResolution = [&](const double zoom) {
@@ -18,21 +20,21 @@ H3Model::~H3Model() {
         thread_->wait(250);
     }
 
-    qDeleteAll(cells_);
-    cells_.clear();
+    qDeleteAll(pathCells_);
+    pathCells_.clear();
 }
 
 int H3Model::rowCount(const QModelIndex &parent) const {
     Q_UNUSED(parent)
-    return static_cast<int>(cells_.size());
+    return static_cast<int>(pathCells_.size());
 }
 
 QVariant H3Model::data(const QModelIndex &index, const int role) const {
-    if (!index.isValid() || index.row() >= cells_.size()) {
+    if (!index.isValid() || index.row() >= pathCells_.size()) {
         return {};
     }
 
-    const auto data = cells_.at(index.row());
+    const auto data = pathCells_.at(index.row());
     switch (role) {
     case ResRole:
         return QVariant::fromValue(data->res());
@@ -48,7 +50,9 @@ QVariant H3Model::data(const QModelIndex &index, const int role) const {
 }
 
 QHash<int, QByteArray> H3Model::roleNames() const {
-    return {{ResRole, "res"}, {IndexRole, "index"}, {CellColor, "color"}, {PathRole, "path"}};
+    // clang-format off
+    return {{ResRole, "res"}, {IndexRole, "h3Index"}, {CellColor, "color"}, {PathRole, "path"}};
+    // clang-format on
 }
 
 //////////////
@@ -79,17 +83,17 @@ bool H3Model::isCoordinateTargetValid(const quint8 zoom, const QGeoCoordinate &c
     return true;
 }
 
-std::optional<H3Data *> H3Model::findCellByRes(const quint8 res) const {
-    const auto it = std::ranges::find_if(cells_, [res](const auto &cell) { return cell->res() == res; });
-    if (it == cells_.end()) {
+std::optional<H3Cell *> H3Model::findCellByRes(const quint8 res) const {
+    const auto it = std::ranges::find_if(pathCells_, [res](const auto &cell) { return cell->res() == res; });
+    if (it == pathCells_.end()) {
         return std::nullopt;
     }
     return *it;
 }
 
-std::optional<H3Data *> H3Model::findCellByID(const quint64 id) const {
-    const auto it = std::ranges::find_if(cells_, [id](const auto &cell) { return cell->index() == id; });
-    if (it == cells_.end()) {
+std::optional<H3Cell *> H3Model::findCellByID(const quint64 id) const {
+    const auto it = std::ranges::find_if(pathCells_, [id](const auto &cell) { return cell->index() == id; });
+    if (it == pathCells_.end()) {
         return std::nullopt;
     }
     return *it;
@@ -107,7 +111,11 @@ void H3Model::onCellComputed(const quint8 res, const H3Index index, const QVaria
         return;
     }
 
-    auto cell = new H3Data(this);
+    if (findCellByID(index).has_value()) {
+        return;
+    }
+
+    auto cell = new H3Cell(this);
     cell->setRes(res);
     cell->setIndex(index);
     cell->setPath(polygon);
@@ -118,59 +126,92 @@ void H3Model::onCellComputed(const quint8 res, const H3Index index, const QVaria
         cell->setColor(getColorForResolution(res));
     }
 
-    beginInsertRows(QModelIndex(), static_cast<int>(cells_.size()), static_cast<int>(cells_.size()));
-    cells_.emplace_back(cell);
+    beginInsertRows(QModelIndex(), static_cast<int>(pathCells_.size()), static_cast<int>(pathCells_.size()));
+    pathCells_.emplace_back(cell);
     endInsertRows();
 }
 
-void H3Model::requestCell(const quint8 mapZoom, const QGeoCoordinate &coordinate) {
-    if (!worker_) {
-        return;
-    }
-    if (!isCoordinateTargetValid(mapZoom, coordinate)) {
-        return;
-    }
-    if (isClearing_) {
-        return;
-    }
+void H3Model::requestCells(const std::vector<H3Index> &indexes) {
 
-    SPDLOG_INFO("requestCell map zoom {}", mapZoom);
+    // std::ranges::sort(pathCells_ , [](const auto &lhs, const auto &rhs) {
+    //     return lhs->index() < rhs->index();
+    // });
+    //
+    // auto is_present = [&](const H3Index& x) {
+    //     // std::ranges::binary_search is O(log M) where M is the size of items_to_remove
+    //     return std::ranges::all_of(pathCells_, [&](const auto &cell) {
+    //         return cell->index() == x;
+    //     });
+    // };
+    //
+    // auto filtered_view = indexes | std::views::filter([&](H3Index x){
+    //     // We negate the result of is_present to KEEP items that are NOT in items_to_remove
+    //     return !is_present(x);
+    // });
 
-    uint8_t res = 0;
-    try {
-        res = zoomToRes_.at(mapZoom);
-    } catch (const std::out_of_range &err) {
-        spdlog::error("Выбран недопустимый зум под разрешение {}", err.what());
-        return;
-    }
-
-    H3Index h3Index = H3_NULL;
-    const LatLng ll{.lat = degsToRads(coordinate.latitude()), .lng = degsToRads(coordinate.longitude())};
-    if (const auto errIdx = latLngToCell(&ll, res, &h3Index); errIdx != E_SUCCESS || h3Index == H3_NULL) {
-        spdlog::warn("Impossible to convert this lat:{} lng:{} coordinate to H3Index {}", coordinate.latitude(),
-                     coordinate.longitude(), errIdx);
-        return;
-    }
-    if (findCellByID(h3Index).has_value()) {
-        return;
-    }
+    // std::vector<H3Index> result_vec(filtered_view.begin(), filtered_view.end());
 
     // Если есть старые ячейки, очищаем их перед добавлением новой
-    if (!cells_.empty()) {
+    if (!pathCells_.empty()) {
         clearAllCells();
 
         if (!isClearing_) {
-            worker_->requestCell(h3Index);
+            worker_->requestCell(indexes);
         }
     } else {
         // Если модель пустая, запрашиваем сразу
-        worker_->requestCell(h3Index);
+        worker_->requestCell(indexes);
     }
+}
+
+void H3Model::requestCell(const quint8 mapZoom, const QGeoCoordinate &coordinate) {
+    // if (!worker_) {
+    //     return;
+    // }
+    // if (!isCoordinateTargetValid(mapZoom, coordinate)) {
+    //     return;
+    // }
+    // if (isClearing_) {
+    //     return;
+    // }
+    //
+    // SPDLOG_INFO("requestCell map zoom {}", mapZoom);
+    //
+    // uint8_t res = 0;
+    // try {
+    //     res = zoomToRes_.at(mapZoom);
+    // } catch (const std::out_of_range &err) {
+    //     spdlog::error("Выбран недопустимый зум под разрешение {}", err.what());
+    //     return;
+    // }
+    //
+    // H3Index h3Index = H3_NULL;
+    // const LatLng ll{.lat = degsToRads(coordinate.latitude()), .lng = degsToRads(coordinate.longitude())};
+    // if (const auto errIdx = latLngToCell(&ll, res, &h3Index); errIdx != E_SUCCESS || h3Index == H3_NULL) {
+    //     spdlog::warn("Impossible to convert this lat:{} lng:{} coordinate to H3Index {}", coordinate.latitude(),
+    //                  coordinate.longitude(), errIdx);
+    //     return;
+    // }
+    // if (findCellByID(h3Index).has_value()) {
+    //     return;
+    // }
+    //
+    // // Если есть старые ячейки, очищаем их перед добавлением новой
+    // if (!pathCells_.empty()) {
+    //     clearAllCells();
+    //
+    //     if (!isClearing_) {
+    //         worker_->requestCell(h3Index);
+    //     }
+    // } else {
+    //     // Если модель пустая, запрашиваем сразу
+    //     worker_->requestCell(h3Index);
+    // }
 }
 
 void H3Model::clearAllCells() {
     // Проверяем, есть ли что очищать
-    if (cells_.isEmpty()) {
+    if (pathCells_.isEmpty()) {
         return;
     }
 
@@ -180,14 +221,14 @@ void H3Model::clearAllCells() {
         return;
     }
 
-    spdlog::info("Starting clearAllCells, count: {}", cells_.size());
+    spdlog::info("Starting clearAllCells, count: {}", pathCells_.size());
 
     isClearing_ = true;
     emit clearingStarted();
 
     beginResetModel();
-    qDeleteAll(cells_);
-    cells_.clear();
+    qDeleteAll(pathCells_);
+    pathCells_.clear();
     endResetModel();
 
     isClearing_ = false;

@@ -6,10 +6,9 @@ using namespace std::chrono_literals;
 H3Worker::H3Worker(QObject *parent) : QObject(parent) {
     astar_ = new H3AStar();
     // connect(astar_, &H3AStar::newCell, this, [this](H3Index index) {
-    //     // searchingCells_.emplace_back(index);
-    //     // const auto childPolygon = indexToPolygon(index);
-    //     // std::this_thread::sleep_for(5ms);
-    //     // emit cellComputed(getResolution(index), index, childPolygon, true);
+    //     const auto childPolygon = Helper::indexToPolygon(index);
+    //     std::this_thread::sleep_for(30ms);
+    //     emit cellComputed(getResolution(index), index, childPolygon.value(), true);
     // });
 }
 
@@ -33,44 +32,41 @@ void H3Worker::doWork() {
         if (!req.has) {
             continue;
         }
-        searchingCells_.clear();
 
-        const H3Index start = req.index;  // 0x8b194ad14da3fffL;
-        constexpr H3Index end = 0x8eb8a6b13046757L;
-
+        H3Index prevIndex = req.indexes.front();
         std::vector<H3Index> path;
-        try {
-            path = astar_->findShortestPath(start, end);
-
-            for (const auto index : path) {
-                auto childPolygon = Helper::indexToPolygon(index);
-                if (!childPolygon.has_value()) {
-                    break;
+        for (auto indexId = 1; indexId < req.indexes.size(); indexId++) {
+            try {
+                path = astar_->findShortestPath(prevIndex, req.indexes.at(indexId));
+                prevIndex = req.indexes.at(indexId);
+                for (const auto index : path) {
+                    auto childPolygon = Helper::indexToPolygon(index);
+                    if (!childPolygon.has_value()) {
+                        break;
+                    }
+                    std::this_thread::sleep_for(17ms);
+                    emit cellComputed(getResolution(index), index, childPolygon.value(), false);
                 }
-                std::this_thread::sleep_for(7ms);
-                emit cellComputed(getResolution(index), index, childPolygon.value(), false);
+            } catch (const std::exception &e) {
+                spdlog::warn("{}", e.what());
             }
-        } catch (const std::exception &e) {
-            spdlog::warn("{}", e.what());
         }
-
         {
             std::lock_guard lk(mutex_);
             isRequested.store(false);
         }
-        SPDLOG_INFO("End wait");
     }
     emit finished();
 }
 
-void H3Worker::requestCell(const H3Index index) {
+void H3Worker::requestCell(const std::vector<H3Index> &index) {
     {
         std::lock_guard lk(mutex_);
         if (isRequested.load()) {
             SPDLOG_WARN("cancel <requestCell>");
             return;
         }
-        pending_.index = index;
+        pending_.indexes = index;
         pending_.has = true;
         isRequested.store(true);
     }

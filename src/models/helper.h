@@ -5,6 +5,7 @@
 #include <QVariantList>
 #include <h3/h3api.h>
 
+namespace H3_VIEWER {
 struct Helper {
     static std::optional<QVariantList> indexToPolygon(const H3Index index) {
         CellBoundary childBoundary{};
@@ -53,5 +54,6 @@ struct Helper {
         return polygon;
     }
 };
+}  // namespace H3_VIEWER
 
 #endif  // QHEXWALKER_HELPER_H

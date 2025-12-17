@@ -11,10 +11,6 @@
 #include <QQuickWindow>
 #include <QQuickStyle>
 
-#ifndef __APPLE__
-    #include <QSurfaceFormat>
-#endif
-
 #include <QThread>
 
 // Qt Positioning

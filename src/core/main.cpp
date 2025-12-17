@@ -1,5 +1,9 @@
 #include "application.h"
 
+#ifndef __APPLE__
+#include <QSurfaceFormat>
+#endif
+
 #include <csignal>
 #include <entryPoint.h>
 

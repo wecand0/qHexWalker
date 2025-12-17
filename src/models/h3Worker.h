@@ -8,8 +8,6 @@
 #include "astar.h"
 #include "helper.h"
 
-using namespace std::chrono_literals;
-
 struct h3_deleter {
     void operator()(LinkedGeoPolygon *poly) const {
         if (poly == nullptr) {
@@ -29,14 +27,14 @@ public:
     explicit H3Worker(QObject *parent = nullptr);
     ~H3Worker() override;
     struct PendingRequest {
-        H3Index index{};
+        std::vector<H3Index> indexes;
         bool has{};
     };
 
 public slots:
     void doWork();
     // Запросить пересчет ячейки по координатам (в градусах) и разрешению
-    void requestCell(H3Index index);
+    void requestCell(const std::vector<H3Index> &index);
 
 signals:
     void finished();
@@ -49,8 +47,6 @@ private:
     std::atomic_bool isRequested{false};
     std::mutex mutex_;
     std::condition_variable cv_;
-
-    std::vector<H3Index> searchingCells_;
     PendingRequest pending_;
 };
 }  // namespace H3_VIEWER

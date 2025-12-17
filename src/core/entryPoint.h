@@ -10,6 +10,7 @@ class Logger;
 }
 
 class H3Model;
+class H3TargetsModel;
 
 class EntryPoint final : public QObject {
     Q_OBJECT
@@ -31,6 +32,7 @@ private:
 
     std::unique_ptr<TD::Logger> logger_;
     H3Model *h3Model_{};
+    H3TargetsModel *targetsModel_{};
     MapProvider *mapProvider_{};
 };
 

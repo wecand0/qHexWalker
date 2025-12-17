@@ -3,12 +3,19 @@ import QtQuick.Window
 import QtLocation
 import QtPositioning
 import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Layouts
 
 ApplicationWindow {
     id: window
 
+    // Тёмная тема
+    Material.theme: Material.Dark
+    Material.accent: Material.Teal
+    Material.primary: Material.BlueGrey
+
     property var coordinate: QtPositioning.coordinate(0.0, 0.0)
+    property var zoomTarget: 0
     property var visibleBounds: ({
             north: 0,
             south: 0,
@@ -64,8 +71,8 @@ ApplicationWindow {
 
     // Функция обновления порядка после перемещения
     function updateOrder() {
-        for (var i = 0; i < coordinateListModel.count; i++) {
-            coordinateListModel.setProperty(i, "order", i + 1);
+        for (var i = 0; i < targetsModel.count; i++) {
+            targetsModel.setProperty(i, "order", i + 1);
         }
     }
 
@@ -87,27 +94,24 @@ ApplicationWindow {
             }
         ]
     }
-    RowLayout {
+    SplitView {
         anchors.fill: parent
-        spacing: 0
+        orientation: Qt.Horizontal
 
         // Панель со списком координат
         Rectangle {
             id: paths
 
-            Layout.fillHeight: true
-            Layout.minimumWidth: 250
-            Layout.preferredWidth: Screen.width * 0.2
-            border.color: "#66FFFFFF"
-            border.width: 1
-            color: "#2A2A2A"
+            implicitWidth: Screen.width * 0.2
+            SplitView.maximumWidth:  Screen.width * 0.3
+            SplitView.minimumWidth:  Screen.width * 0.2
+            color: "#1E252B"
             opacity: 0.85
-            radius: 7
-            z: 1
+            radius: 16
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: 8
+                anchors.margins: 20
                 spacing: 8
 
                 // Заголовок
@@ -115,85 +119,59 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     color: "white"
                     font.bold: true
-                    font.pixelSize: 16
-                    text: "H3 path list"
+                    font.pixelSize: 22
+                    text: "H3 targets list"
                 }
                 Rectangle {
+                    color: "#444444"
                     Layout.fillWidth: true
-                    color: "#66FFFFFF"
                     height: 1
                 }
-
-                // Кнопка добавления текущей координаты
-                Button {
-                    Layout.fillWidth: true
-                    text: "Add Position"
-
-                    contentItem: Text {
-                        color: "white" // Set your desired color here
-                        font.pointSize: 12
-                        horizontalAlignment: Text.AlignHCenter
-                        text: parent.text // Referencing the button's text
-                        verticalAlignment: Text.AlignVCenter
-                    }
-
-                    onClicked: {
-                        coordinateListModel.append({
-                            coordinate: mapMouseArea.currentCoordinate,
-                            h3Index: "H3:" + mapMouseArea.currentCoordinate.latitude.toFixed(6) + "," + mapMouseArea.currentCoordinate.longitude.toFixed(6),
-                            resolution: Math.max(Math.min(map.zoomLevel / 1.5, 15.0), 0.0),
-                            zoom: map.zoomLevel.toFixed(1),
-                            order: coordinateListModel.count + 1
-                        });
-                    }
-                }
-
                 // Список координат
                 ScrollView {
                     Layout.fillHeight: true
                     Layout.fillWidth: true
-                    clip: true
+                    //clip: true
 
                     ListView {
                         id: coordinateListView
 
-                        model: coordinateListModel
+                        model: targetsModel
                         spacing: 4
 
                         delegate: Rectangle {
                             id: listItem
-
                             border.color: "#555555"
                             border.width: 1
-                            color: itemMouseArea.containsMouse ? "#404040" : "#333333"
+                            color: itemMouseArea.containsMouse ? "#496e93" : "#242B33"
                             height: itemColumn.height + 16
                             radius: 4
                             width: coordinateListView.width
 
+                            Behavior on color { ColorAnimation { duration: 150 } }
+
                             MouseArea {
                                 id: itemMouseArea
-
                                 anchors.fill: parent
                                 hoverEnabled: true
-
                                 onClicked: {
-                                    map.center = model.coordinate;
-                                    map.zoomLevel = parseFloat(model.zoom);
+                                    centerAnimation.to = model.coordinate
+                                    zoomAnimation.to = model.zoom
+                                    centerAnimation.start()
+                                    zoomAnimation.start()
                                 }
                             }
+
                             Column {
                                 id: itemColumn
-
                                 spacing: 4
-
                                 anchors {
                                     left: parent.left
-                                    margins: 8
                                     right: parent.right
                                     top: parent.top
+                                    margins: 8
                                 }
 
-                                // Порядковый номер и кнопки управления
                                 Row {
                                     spacing: 4
                                     width: parent.width
@@ -205,94 +183,100 @@ ApplicationWindow {
                                         width: 40
                                     }
 
-                                    // Кнопки перемещения
+                                    // Кнопка вверх
                                     Button {
-                                        id: upButton
+                                        width: 30
+                                        height: 25
                                         enabled: index > 0
-                                        height: 25
                                         text: "▲"
-                                        width: 30
 
                                         contentItem: Text {
-                                            color: upButton.enabled ? "white" : "gray"
+                                            text: parent.text
                                             font.pointSize: 12
+                                            color: parent.enabled ? "white" : "gray"
                                             horizontalAlignment: Text.AlignHCenter
-                                            text: parent.text // Referencing the button's text
                                             verticalAlignment: Text.AlignVCenter
                                         }
 
-                                        onClicked: {
-                                            if (index > 0) {
-                                                coordinateListModel.move(index, index - 1, 1);
-                                                updateOrder();
-                                            }
+                                        background: Rectangle {
+                                            color: parent.enabled ? "#444444" : "#222222"
+                                            radius: 4
+                                            border.color: "#666666"
                                         }
+
+                                        onClicked: targetsModel.move(index, index - 1)
                                     }
+
+                                    // Кнопка вниз
                                     Button {
-                                        id: downButton
-
-                                        enabled: index < coordinateListModel.count - 1
-                                        height: 25
-                                        text: "▼"
                                         width: 30
+                                        height: 25
+                                        enabled: index < coordinateListView.count - 1
+                                        text: "▼"
 
                                         contentItem: Text {
-                                            color: downButton.enabled ? "white" : "gray"
+                                            text: parent.text
                                             font.pointSize: 12
+                                            color: parent.enabled ? "white" : "gray"
                                             horizontalAlignment: Text.AlignHCenter
-                                            text: parent.text // Referencing the button's text
                                             verticalAlignment: Text.AlignVCenter
                                         }
 
-                                        onClicked: {
-                                            if (index < coordinateListModel.count - 1) {
-                                                coordinateListModel.move(index, index + 1, 1);
-                                                updateOrder();
-                                            }
+                                        background: Rectangle {
+                                            color: parent.enabled ? "#444444" : "#222222"
+                                            radius: 4
+                                            border.color: "#666666"
                                         }
-                                    }
-                                    Item {
-                                        Layout.fillWidth: true
-                                        width: 10
+
+                                        onClicked: targetsModel.move(index, index + 1)
                                     }
 
                                     // Кнопка удаления
                                     Button {
+                                        width: 30
                                         height: 25
                                         text: "✕"
-                                        width: 30
 
                                         contentItem: Text {
-                                            color: "red" // Set your desired color here
+                                            text: parent.text
                                             font.pointSize: 12
+                                            color: "red"
                                             horizontalAlignment: Text.AlignHCenter
-                                            text: parent.text // Referencing the button's text
                                             verticalAlignment: Text.AlignVCenter
                                         }
 
+                                        background: Rectangle {
+                                            color: "#660000"
+                                            radius: 4
+                                            border.color: "red"
+                                        }
+
                                         onClicked: {
-                                            coordinateListModel.remove(index);
-                                            updateOrder();
+                                            let cellsNumber = targetsModel.remove(index)
+                                            if(cellsNumber === 0){
+                                                h3Model.clearAllCells();
+                                            }
                                         }
                                     }
                                 }
+
 
                                 // H3 индекс
                                 Text {
                                     color: "lightblue"
                                     font.pixelSize: 11
-                                    text: "H3: " + model.h3Index
+                                    text: "H3: 0x" + model.h3Index.toString(16)
                                     width: parent.width
                                     wrapMode: Text.WrapAnywhere
                                 }
 
                                 // Координаты
-                                Text {
-                                    color: "lightgreen"
-                                    font.pixelSize: 11
-                                    text: "Lat: " + model.coordinate.latitude.toFixed(6) + " Lng: " + model.coordinate.longitude.toFixed(6)
-                                    width: parent.width
-                                }
+                                // Text {
+                                //     color: "lightgreen"
+                                //     font.pixelSize: 11
+                                //     text: "Lat: " + model.coordinate.latitude.toFixed(3) + " Lng: " + model.coordinate.longitude.toFixed(3)
+                                //     width: parent.width
+                                // }
 
                                 // Разрешение и зум
                                 Row {
@@ -301,7 +285,7 @@ ApplicationWindow {
                                     Text {
                                         color: "orange"
                                         font.pixelSize: 11
-                                        text: "Res: " + model.resolution
+                                        text: "Res: " + model.res
                                     }
                                     Text {
                                         color: "orange"
@@ -313,48 +297,27 @@ ApplicationWindow {
                         }
                     }
                 }
-                Button {
-                    Layout.fillWidth: true
-                    text: "Compute"
-
-                    contentItem: Text {
-                        color: "green" // Set your desired color here
-                        font.pointSize: 12
-                        horizontalAlignment: Text.AlignHCenter
-                        text: parent.text // Referencing the button's text
-                        verticalAlignment: Text.AlignVCenter
-                    }
-
-                    onClicked: {
-                        //coordinateListModel.clear();
-                    }
-                }
-
-                Button {
-                    Layout.fillWidth: true
-                    text: "Clear All"
-
-                    contentItem: Text {
-                        color: "red" // Set your desired color here
-                        font.pointSize: 10
-                        horizontalAlignment: Text.AlignHCenter
-                        text: parent.text // Referencing the button's text
-                        verticalAlignment: Text.AlignVCenter
-                    }
-
-                    onClicked: {
-                        coordinateListModel.clear();
-                        h3Model.clearAllCells()
-                    }
-                }
-
-                // Кнопки управления списком
-
             }
         }
         Map {
             id: map
 
+            PropertyAnimation {
+                id: centerAnimation
+                target: map
+                property: "center"
+                to: QtPositioning.coordinate(55.0, 55.0) // The desired end zoom level
+                duration: 500 // Animation duration in milliseconds
+                easing.type:Easing.OutCubic // Optional: for smoother animation
+            }
+            PropertyAnimation {
+                id: zoomAnimation
+                target: map
+                property: "zoomLevel"
+                to: 10 // The desired end zoom level
+                duration: 500 // Animation duration in milliseconds
+                easing.type: Easing.OutCubic // Optional: for smoother animation
+            }
             function normalizeLon(lon) {
                 var x = lon;
                 while (x > 180)
@@ -450,6 +413,26 @@ ApplicationWindow {
 
                 target: h3Model
             }
+            Connections {
+                function onClearingFinished() {
+                    //console.log("Map: Clearing finished - recreating MapItemView");
+                    // Восстанавливаем MapItemView
+                    if(targetCells) {
+                        targetCells.model = targetsModel;
+                        targetCells.visible = true;
+                    }
+                }
+                function onClearingStarted() {
+                    //console.log("Map: Clearing started - destroying MapItemView");
+                    // Полностью уничтожаем MapItemView
+                    if(targetCells) {
+                        targetCells.visible = false;
+                        targetCells.model = null;
+                    }
+                }
+
+                target: targetsModel
+            }
             DragHandler {
                 id: drag
 
@@ -468,13 +451,13 @@ ApplicationWindow {
                 anchors.fill: parent
                 cursorShape: Qt.CrossCursor
 
-                //hoverEnabled: true
+                hoverEnabled: true
 
                 onClicked: event => {
+                    // if (event.button === Qt.LeftButton) {
+                    //     h3Model.requestCell(map.zoomLevel, map.toCoordinate(Qt.point(mouseX, mouseY)));
+                    // }
                     if (event.button === Qt.LeftButton) {
-                        h3Model.requestCell(map.zoomLevel, map.toCoordinate(Qt.point(mouseX, mouseY)));
-                    }
-                    if (event.button === Qt.RightButton) {
                         currentCoordinate = map.toCoordinate(Qt.point(event.x, event.y));
                     }
                 }
@@ -498,6 +481,143 @@ ApplicationWindow {
                     let dx = postZoomPoint.x - preZoomPoint.x;
                     let dy = postZoomPoint.y - preZoomPoint.y;
                     map.center = map.toCoordinate(Qt.point(map.width / 2 + dx, map.height / 2 + dy));
+                }
+            }
+            Shortcut {
+                sequence: "a"
+                onActivated: {
+                    targetsModel.requestCell(map.zoomLevel.toFixed(1), mapMouseArea.currentCoordinate)
+                }
+            }
+            Rectangle {
+                id: addTarget
+
+                anchors.margins: 8
+                anchors.top: parent.top
+                anchors.left: parent.left
+                border.color: "#66FFFFFF"
+                border.width: 1
+                color: "black"
+                height: addTargetTxt.height
+                opacity: 1
+                radius: 7
+                width: addTargetTxt.width
+                z: 1
+
+                Text {
+                    id: addTargetTxt
+                    font.pointSize: 20
+                    color: "green"
+                    text: " Press 'a' to add a target "
+                }
+            }
+            Shortcut {
+                sequence: "c"
+                onActivated: {
+                    targetsModel.compute();
+                }
+            }
+            Rectangle {
+                id: computePath
+
+                anchors.margins: 8
+                anchors.top: addTarget.bottom
+                anchors.left: parent.left
+                border.color: "#66FFFFFF"
+                border.width: 1
+                color: "black"
+                height: computePathTxt.height
+                opacity: 1
+                radius: 7
+                width: computePathTxt.width
+                z: 1
+
+                Text {
+                    id: computePathTxt
+                    font.pointSize: 20
+                    color: "yellow"
+                    text: " Press 'c' to compute  "
+                }
+            }
+            Shortcut {
+                sequence: "r"
+                onActivated: {
+                    targetsModel.clearAllCells();
+                    h3Model.clearAllCells();
+                }
+            }
+            Rectangle {
+                id: clearAll
+
+                anchors.margins: 8
+                anchors.top: computePath.bottom
+                anchors.left: parent.left
+                border.color: "#66FFFFFF"
+                border.width: 1
+                color: "black"
+                height: clearAllTxt.height
+                opacity: 1
+                radius: 7
+                width: clearAllTxt.width
+                z: 1
+
+                Text {
+                    id: clearAllTxt
+                    font.pointSize: 20
+                    color: "red"
+                    text: " Press 'r' to clear all cells "
+                }
+            }
+            MapItemView {
+                id: targetCells
+                model: targetsModel ? targetsModel : null
+                visible: true
+
+                delegate: Component {
+                    id: cellDelegate
+                    MapItemGroup {
+                        MapPolygon {
+                            id: cellLine
+                            autoFadeIn: false
+                            border.color: "black"
+                            border.width: 1
+                            color: model ? model.color : "transparent"
+                            opacity: model ? model.res * 0.1 : 1
+                            path: model ? model.path : []
+                            referenceSurface: QtLocation.ReferenceSurface.Globe
+                            visible: true
+                            z: model ? model.res : 2
+                        }
+
+                        MapQuickItem {
+                            coordinate: model ? model.coordinate : QtPositioning.coordinate()
+                            anchorPoint: Qt.point(sourceItem.width / 2, sourceItem.height / 2)
+                            z: model ? model.res + 1 : 3
+
+                            sourceItem: Rectangle {
+                                width: textMetrics.width + 10
+                                height: textMetrics.height + 6
+                                color: "white"
+                                border.color: "black"
+                                opacity: 1
+                                radius: 7
+
+                                Text {
+                                    id: cellText
+                                    anchors.centerIn: parent
+                                    text: model ? model.order: 0
+                                    font.pixelSize: 12
+                                    color: "black"
+                                }
+
+                                TextMetrics {
+                                    id: textMetrics
+                                    font: cellText.font
+                                    text: cellText.text
+                                }
+                            }
+                        }
+                    }
                 }
             }
             MapItemView {
