@@ -2,6 +2,8 @@
 #include "h3Cell.h"
 #include "h3Worker.h"
 
+#include <algorithm>
+
 H3Model::H3Model(QObject *parent) : QAbstractListModel(parent) {
     auto zoomToResolution = [&](const double zoom) {
         return std::max(std::min(zoom / 1.5, static_cast<double>(maxZoom_c)), 0.0);
@@ -49,7 +51,7 @@ QVariant H3Model::data(const QModelIndex &index, const int role) const {
 
 QHash<int, QByteArray> H3Model::roleNames() const {
     // clang-format off
-    return {{ResRole, "res"}, {IndexRole, "index"}, {CellColor, "color"}, {PathRole, "path"}};
+    return {{ResRole, "res"}, {IndexRole, "h3Index"}, {CellColor, "color"}, {PathRole, "path"}};
     // clang-format on
 }
 
@@ -130,6 +132,25 @@ void H3Model::onCellComputed(const quint8 res, const H3Index index, const QVaria
 }
 
 void H3Model::requestCells(const std::vector<H3Index> &indexes) {
+
+    // std::ranges::sort(pathCells_ , [](const auto &lhs, const auto &rhs) {
+    //     return lhs->index() < rhs->index();
+    // });
+    //
+    // auto is_present = [&](const H3Index& x) {
+    //     // std::ranges::binary_search is O(log M) where M is the size of items_to_remove
+    //     return std::ranges::all_of(pathCells_, [&](const auto &cell) {
+    //         return cell->index() == x;
+    //     });
+    // };
+    //
+    // auto filtered_view = indexes | std::views::filter([&](H3Index x){
+    //     // We negate the result of is_present to KEEP items that are NOT in items_to_remove
+    //     return !is_present(x);
+    // });
+
+    // std::vector<H3Index> result_vec(filtered_view.begin(), filtered_view.end());
+
     // Если есть старые ячейки, очищаем их перед добавлением новой
     if (!pathCells_.empty()) {
         clearAllCells();

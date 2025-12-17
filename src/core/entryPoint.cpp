@@ -41,7 +41,6 @@ void EntryPoint::InitDataModels() {
     targetsModel_ = new H3TargetsModel(this);
     engine_->rootContext()->setContextProperty("targetsModel", targetsModel_);
 
-
     connect(targetsModel_, &H3TargetsModel::onCompute, h3Model_, &H3Model::requestCells);
 }
 void EntryPoint::InitMap() {

@@ -36,7 +36,7 @@ void H3Worker::doWork() {
 
         H3Index prevIndex = req.indexes.front();
         std::vector<H3Index> path;
-        for (auto indexId = 1 ; indexId < req.indexes.size(); indexId++) {
+        for (auto indexId = 1; indexId < req.indexes.size(); indexId++) {
             try {
                 path = astar_->findShortestPath(prevIndex, req.indexes.at(indexId));
                 prevIndex = req.indexes.at(indexId);
@@ -52,9 +52,6 @@ void H3Worker::doWork() {
                 spdlog::warn("{}", e.what());
             }
         }
-
-
-
 
         // const H3Index start = req.index;  // 0x8b194ad14da3fffL;
         // constexpr H3Index end = 0x8eb8a6b13046757L;
@@ -79,7 +76,6 @@ void H3Worker::doWork() {
             std::lock_guard lk(mutex_);
             isRequested.store(false);
         }
-        SPDLOG_INFO("End wait");
     }
     emit finished();
 }

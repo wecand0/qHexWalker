@@ -53,7 +53,7 @@ QHash<int, QByteArray> H3TargetsModel::roleNames() const {
     return { {ResRole, "res"},
                 {ZoomRole, "zoom"},
                 {OrderRole, "order"},
-                {IndexRole, "index"},
+                {IndexRole, "h3Index"},
                 {CellColor, "color"},
                 {PathRole, "path"},
                 {CoordinatesRole, "coordinate"}};
@@ -67,24 +67,67 @@ void H3TargetsModel::compute() {
     }
     emit onCompute(indexes);
 }
+void H3TargetsModel::move(int from, int to) {
+    if (from < 0 || from >= cells_.size() || to < 0 || to >= cells_.size() || from == to)
+        return;
 
-void H3TargetsModel::remove(const int modelIndex) {
+    // Правильно рассчитываем destinationRow для beginMoveRows
+    const int destinationRow = (to > from) ? (to + 1) : to;
+
     isClearing_ = true;
     emit clearingStarted();
 
-    SPDLOG_INFO("Remove {}", modelIndex);
+    beginMoveRows(QModelIndex(), from, from, QModelIndex(), destinationRow);
 
-    beginResetModel();
-    // for (auto &cell : cells_) {
-    //     if (cell->order() == modelIndex) {
-    //         cells_.takeAt()
-    //     }
-    // }
-    cells_.takeAt(modelIndex);
-    endResetModel();
+    // Ручное перемещение — 100% надёжно
+    H3Target *item = cells_.takeAt(from);
+    cells_.insert(to, item);
+
+    endMoveRows();
+
+    // Обновляем order
+    int start = std::min(from, to);
+    int end = std::max(from, to);
+    for (int i = start; i <= end; ++i) {
+        cells_[i]->setOrder(static_cast<quint16>(i + 1));
+    }
+
+    emit dataChanged(index(start), index(end), {OrderRole});
 
     isClearing_ = false;
     emit clearingFinished();
+}
+
+qsizetype H3TargetsModel::remove(const int row) {
+    if (row < 0 || row >= cells_.size())
+        return {};
+
+    isClearing_ = true;
+    emit clearingStarted();
+
+    // Правильно: удаляем одну строку
+    beginRemoveRows(QModelIndex(), row, row);
+    H3Target *cell = cells_.takeAt(row);
+    delete cell;
+    endRemoveRows();
+
+    // Обновляем order у оставшихся элементов (начиная с row и до конца)
+    for (int i = row; i < cells_.size(); ++i) {
+        cells_[i]->setOrder(static_cast<quint16>(i + 1));
+    }
+
+    // Уведомляем QML, что order изменился у оставшихся элементов
+    if (row < cells_.size()) {
+        emit dataChanged(index(row), index(cells_.size() - 1), {OrderRole});
+    } else if (cells_.isEmpty()) {
+        // Если список стал пустым — уведомляем хотя бы одну (фиктивную) строку
+        emit dataChanged(index(0), index(0), {OrderRole});
+    }
+
+    isClearing_ = false;
+    emit clearingFinished();
+
+    return cells_.size();
 }
 
 void H3TargetsModel::requestCell(const quint8 mapZoom, const QGeoCoordinate &coordinate) {
@@ -109,6 +152,12 @@ void H3TargetsModel::requestCell(const quint8 mapZoom, const QGeoCoordinate &coo
         return;
     }
 
+    auto comp = [h3Index](const H3Target *cell) { return cell->index() == h3Index; };
+    const auto isUnique = std::ranges::find_if(cells_, comp);
+    if (isUnique != cells_.end()) {
+        return;
+    }
+
     const auto polygon = H3_VIEWER::Helper::indexToPolygon(h3Index);
     if (!polygon.has_value()) {
         return;
@@ -116,8 +165,6 @@ void H3TargetsModel::requestCell(const quint8 mapZoom, const QGeoCoordinate &coo
 
     auto cell = new H3Target(this);
     cell->setRes(res);
-    // FIXME use model index not from qlist
-    cell->setOrder(cells_.count());
     cell->setZoom(mapZoom);
     cell->setIndex(h3Index);
     cell->setCoordinate(coordinate);
@@ -128,7 +175,7 @@ void H3TargetsModel::requestCell(const quint8 mapZoom, const QGeoCoordinate &coo
     cells_.emplace_back(cell);
     endInsertRows();
 
-    SPDLOG_INFO("ADDED {} {} {}", res, coordinate.latitude(), coordinate.longitude());
+    cell->setOrder(static_cast<quint16>(cells_.size()));  // после endInsertRows()
 }
 
 void H3TargetsModel::clearAllCells() {

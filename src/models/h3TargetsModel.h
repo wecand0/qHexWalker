@@ -24,7 +24,8 @@ private slots:
 
 public slots:
     Q_INVOKABLE void compute();
-    Q_INVOKABLE void remove(int modelIndex);
+    Q_INVOKABLE void move(int from, int to);  // <-- обязательно!
+    Q_INVOKABLE qsizetype remove(int row);
     Q_INVOKABLE void requestCell(quint8 mapZoom, const QGeoCoordinate &coordinate);
     Q_INVOKABLE void clearAllCells();
 

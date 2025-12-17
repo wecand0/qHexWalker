@@ -91,7 +91,6 @@ ApplicationWindow {
     SplitView {
         anchors.fill: parent
         orientation: Qt.Horizontal
-        //anchors.fill: parent
         spacing: 0
 
         // Панель со списком координат
@@ -140,7 +139,6 @@ ApplicationWindow {
 
                         delegate: Rectangle {
                             id: listItem
-
                             border.color: "#555555"
                             border.width: 1
                             color: itemMouseArea.containsMouse ? "green" : "#333333"
@@ -150,10 +148,8 @@ ApplicationWindow {
 
                             MouseArea {
                                 id: itemMouseArea
-
                                 anchors.fill: parent
                                 hoverEnabled: true
-
                                 onClicked: {
                                     centerAnimation.to = model.coordinate
                                     zoomAnimation.to = model.zoom
@@ -161,19 +157,17 @@ ApplicationWindow {
                                     zoomAnimation.start()
                                 }
                             }
+
                             Column {
                                 id: itemColumn
-
                                 spacing: 4
-
                                 anchors {
                                     left: parent.left
-                                    margins: 8
                                     right: parent.right
                                     top: parent.top
+                                    margins: 8
                                 }
 
-                                // Порядковый номер и кнопки управления
                                 Row {
                                     spacing: 4
                                     width: parent.width
@@ -185,84 +179,89 @@ ApplicationWindow {
                                         width: 40
                                     }
 
-                                    // Кнопки перемещения
+                                    // Кнопка вверх
                                     Button {
-                                        id: upButton
+                                        width: 30
+                                        height: 25
                                         enabled: index > 0
-                                        height: 25
                                         text: "▲"
-                                        width: 30
 
                                         contentItem: Text {
-                                            color: upButton.enabled ? "white" : "gray"
+                                            text: parent.text
                                             font.pointSize: 12
+                                            color: parent.enabled ? "white" : "gray"
                                             horizontalAlignment: Text.AlignHCenter
-                                            text: parent.text // Referencing the button's text
                                             verticalAlignment: Text.AlignVCenter
                                         }
 
-                                        onClicked: {
-                                            if (index > 0) {
-                                                coordinateListModel.move(index, index - 1, 1);
-                                                updateOrder();
-                                            }
+                                        background: Rectangle {
+                                            color: parent.enabled ? "#444444" : "#222222"
+                                            radius: 4
+                                            border.color: "#666666"
                                         }
+
+                                        onClicked: targetsModel.move(index, index - 1)
                                     }
+
+                                    // Кнопка вниз
                                     Button {
-                                        id: downButton
-
-                                        enabled: index < coordinateListModel.count - 1
-                                        height: 25
-                                        text: "▼"
                                         width: 30
+                                        height: 25
+                                        enabled: index < coordinateListView.count - 1
+                                        text: "▼"
 
                                         contentItem: Text {
-                                            color: downButton.enabled ? "white" : "gray"
+                                            text: parent.text
                                             font.pointSize: 12
+                                            color: parent.enabled ? "white" : "gray"
                                             horizontalAlignment: Text.AlignHCenter
-                                            text: parent.text // Referencing the button's text
                                             verticalAlignment: Text.AlignVCenter
                                         }
 
-                                        onClicked: {
-                                            if (index < coordinateListModel.count - 1) {
-                                                coordinateListModel.move(index, index + 1, 1);
-                                                updateOrder();
-                                            }
+                                        background: Rectangle {
+                                            color: parent.enabled ? "#444444" : "#222222"
+                                            radius: 4
+                                            border.color: "#666666"
                                         }
-                                    }
-                                    Item {
-                                        Layout.fillWidth: true
-                                        width: 10
+
+                                        onClicked: targetsModel.move(index, index + 1)
                                     }
 
                                     // Кнопка удаления
                                     Button {
+                                        width: 30
                                         height: 25
                                         text: "✕"
-                                        width: 30
 
                                         contentItem: Text {
-                                            color: "red" // Set your desired color here
+                                            text: parent.text
                                             font.pointSize: 12
+                                            color: "red"
                                             horizontalAlignment: Text.AlignHCenter
-                                            text: parent.text // Referencing the button's text
                                             verticalAlignment: Text.AlignVCenter
                                         }
 
+                                        background: Rectangle {
+                                            color: "#660000"
+                                            radius: 4
+                                            border.color: "red"
+                                        }
+
                                         onClicked: {
-                                            console.log(index)
-                                            targetsModel.remove(index);
-                                            //updateOrder();
+                                            let cellsNumber = targetsModel.remove(index)
+                                            if(cellsNumber === 0){
+                                                h3Model.clearAllCells();
+                                            }
                                         }
                                     }
                                 }
+
 
                                 // H3 индекс
                                 Text {
                                     color: "lightblue"
                                     font.pixelSize: 11
-                                    text: "H3: 0x" + model.index.toString(16)
+                                    text: "H3: 0x" + model.h3Index.toString(16)
                                     width: parent.width
                                     wrapMode: Text.WrapAnywhere
                                 }
