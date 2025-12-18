@@ -102,9 +102,9 @@ ApplicationWindow {
         Rectangle {
             id: paths
 
-            implicitWidth: Screen.width * 0.2
-            SplitView.maximumWidth:  Screen.width * 0.3
-            SplitView.minimumWidth:  Screen.width * 0.2
+            implicitWidth: Screen.width * 0.1
+            SplitView.maximumWidth:  Screen.width * 0.2
+            SplitView.minimumWidth:  Screen.width * 0.1
             color: "#1E252B"
             opacity: 0.85
             radius: 16

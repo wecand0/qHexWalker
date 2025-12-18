@@ -42,3 +42,5 @@
 
 .idea
 .idea/*
+
+cmake-*

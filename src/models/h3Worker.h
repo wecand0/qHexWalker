@@ -8,6 +8,8 @@
 #include "astar.h"
 #include "helper.h"
 
+#include "h3MazeGenerator.h"
+
 struct h3_deleter {
     void operator()(LinkedGeoPolygon *poly) const {
         if (poly == nullptr) {
@@ -42,7 +44,10 @@ signals:
     void cellComputed(quint8 res, H3Index id, const QVariantList &polygon, bool isSearching);
 
 private:
+    std::unordered_set<H3Index> walls;
+    bool isMazeComputed = false;
     H3AStar *astar_{};
+    H3MazeGenerator mazeGenerator_{};
     // static QVariantList indexToPolygon(H3Index index);
     std::atomic_bool isRequested{false};
     std::mutex mutex_;

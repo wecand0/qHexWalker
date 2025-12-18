@@ -132,6 +132,9 @@ void H3Model::onCellComputed(const quint8 res, const H3Index index, const QVaria
 }
 
 void H3Model::requestCells(const std::vector<H3Index> &indexes) {
+    if (indexes.empty()) {
+        return;
+    }
 
     // std::ranges::sort(pathCells_ , [](const auto &lhs, const auto &rhs) {
     //     return lhs->index() < rhs->index();
@@ -153,7 +156,7 @@ void H3Model::requestCells(const std::vector<H3Index> &indexes) {
 
     // Если есть старые ячейки, очищаем их перед добавлением новой
     if (!pathCells_.empty()) {
-        clearAllCells();
+        // clearAllCells();
 
         if (!isClearing_) {
             worker_->requestCell(indexes);
