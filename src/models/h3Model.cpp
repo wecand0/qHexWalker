@@ -68,6 +68,7 @@ void H3Model::Init() {
     connect(thread_, &QThread::started, worker_, &H3_VIEWER::H3Worker::doWork, Qt::QueuedConnection);
     // Получение результатов пересчета
     connect(worker_, &H3_VIEWER::H3Worker::cellComputed, this, &H3Model::onCellComputed, Qt::QueuedConnection);
+    connect(worker_, &H3_VIEWER::H3Worker::cellsComputed, this, &H3Model::onCellsComputed, Qt::QueuedConnection);
     thread_->start();
 }
 
@@ -103,6 +104,11 @@ QString H3Model::getColorForResolution(const quint8 resolution) const {
     return resolutionColors_c.value(resolution, "gray");
 }
 
+void H3Model::onCellsComputed(const QVariantList &list) {
+    coordinates_ = list;
+    emit coordinatesChanged();
+}
+
 void H3Model::onCellComputed(const quint8 res, const H3Index index, const QVariantList &polygon,
                              const bool isSearching) {
     // Не добавляем новые ячейки во время очистки
@@ -136,7 +142,7 @@ void H3Model::requestCells(const std::vector<H3Index> &indexes) {
     }
     // Если есть старые ячейки, очищаем их перед добавлением новой
     if (!pathCells_.empty()) {
-         clearAllCells();
+         //clearAllCells();
 
         if (!isClearing_) {
             worker_->requestCell(indexes);

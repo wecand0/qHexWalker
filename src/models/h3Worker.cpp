@@ -33,80 +33,100 @@ void H3Worker::doWork() {
             continue;
         }
 
-        QVariantList ppCoordinates_;
-        std::vector<H3Index> outIndexes;
-        LinkedGeoPolygon polygon;
-        cellsToLinkedMultiPolygon(outIndexes.data(), static_cast<int>(outIndexes.size()), &polygon);
+        if (!isMazeComputed) {
+            const QGeoCoordinate center{0, 0, 0};
+            // int radius = 50;
 
-        std::vector<LatLng> temp;
-        temp.resize(outIndexes.size());
+            // Конвертируем координату в H3
+            LatLng ll{.lat = degsToRads(center.latitude()), .lng = degsToRads(center.longitude())};
 
-        auto linkedLatLng = polygon.first->first;
-        while (linkedLatLng) {
-            temp.emplace_back(linkedLatLng->vertex);
-            linkedLatLng = linkedLatLng->next;
+            H3Index centerCell = H3_NULL;
+            if (latLngToCell(&ll, 2, &centerCell) != E_SUCCESS) {
+                return;
+            }
+
+            SPDLOG_CRITICAL("walls");
+
+            // Генерируем лабиринт
+            H3Index start = 0, end = 0;
+            walls = mazeGenerator_.generateMaze(centerCell, 15, start, end);
+            mazeGenerator_.mazeGenerated(walls);
+            SPDLOG_CRITICAL("walls: {}", walls.size());
+            for (const auto &wall : walls) {
+                auto childPolygon = Helper::indexToPolygon(wall);
+                if (!childPolygon.has_value()) {
+                    break;
+                }
+                // std::this_thread::sleep_for(17ms);
+                emit cellComputed(getResolution(wall), wall, childPolygon.value(), true);
+            }
+            isMazeComputed = true;
         }
-        // the last one == the first to make loop
-        temp.emplace_back(polygon.first->first->vertex);
-        destroyLinkedMultiPolygon(&polygon);
 
-        ppCoordinates_.reserve(static_cast<qsizetype>(temp.size()));
-        for (auto &&[lat, lng] : temp) {
-            ppCoordinates_.emplace_back(
-                QVariant::fromValue(QGeoCoordinate{radsToDegs(lat), radsToDegs(lng), 0}));
-        }
+        //для построение лабиринта в entry point и далее создавать единый полигон LinkedGeoPolygon
+//         auto _ = QtConcurrent::run([this, coordinate] {
+//     try {
+//         // Marshal all QObject interactions back to the GUI thread
+//         QMetaObject::invokeMethod(
+//             this,
+//             [this, coordinate] {
+//
+//             },
+//             Qt::BlockingQueuedConnection);
+//     } catch (std::exception &e) {
+//         spdlog::critical(e.what());
+//     }
+// });
 
-        // if (!isMazeComputed) {
-        //     const QGeoCoordinate center{0, 0, 0};
-        //     //int radius = 50;
-        //
-        //     // Конвертируем координату в H3
-        //     LatLng ll{.lat = degsToRads(center.latitude()), .lng = degsToRads(center.longitude())};
-        //
-        //     H3Index centerCell = H3_NULL;
-        //     if (latLngToCell(&ll, 2, &centerCell) != E_SUCCESS) {
-        //         return;
-        //     }
-        //
-        //     SPDLOG_CRITICAL("walls");
-        //
-        //     // Генерируем лабиринт
-        //     H3Index start = 0, end = 0;
-        //     walls = mazeGenerator_.generateMaze(centerCell, 15, start, end);
-        //     mazeGenerator_.mazeGenerated(walls);
-        //     SPDLOG_CRITICAL("walls: {}", walls.size());
-        //     for (const auto &wall : walls) {
-        //         auto childPolygon = Helper::indexToPolygon(wall);
-        //         if (!childPolygon.has_value()) {
-        //             break;
-        //         }
-        //         // std::this_thread::sleep_for(17ms);
-        //         emit cellComputed(getResolution(wall), wall, childPolygon.value(), true);
-        //     }
-        //     isMazeComputed = true;
-        // }
-        //
-        // // Устанавливаем стены в A*
-        // astar_->setBlockedCells(walls);
+        // Устанавливаем стены в A*
+        astar_->setBlockedCells(walls);
 
         H3Index prevIndex = req.indexes.front();
         std::vector<H3Index> path;
+      //  std::vector<H3Index> tempV;
         for (size_t indexId = 1; indexId < req.indexes.size(); indexId++) {
             try {
                 path = astar_->findShortestPath(prevIndex, req.indexes.at(indexId));
+//                std::ranges::copy(tempV, std::back_inserter(path));
                 prevIndex = req.indexes.at(indexId);
                 for (const auto index : path) {
                     auto childPolygon = Helper::indexToPolygon(index);
                     if (!childPolygon.has_value()) {
                         break;
                     }
-                    std::this_thread::sleep_for(10ms);
+                    std::this_thread::sleep_for(170ms);
                     emit cellComputed(getResolution(index), index, childPolygon.value(), false);
                 }
             } catch (const std::exception &e) {
                 spdlog::warn("{}", e.what());
             }
         }
+
+        // QVariantList ppCoordinates_;
+        //
+        // LinkedGeoPolygon polygon;
+        // cellsToLinkedMultiPolygon(path.data(), static_cast<int>(path.size()), &polygon);
+        //
+        // std::vector<LatLng> temp;
+        // temp.resize(path.size());
+        //
+        // auto linkedLatLng = polygon.first->first;
+        // while (linkedLatLng) {
+        //     temp.emplace_back(linkedLatLng->vertex);
+        //     linkedLatLng = linkedLatLng->next;
+        // }
+        // // the last one == the first to make loop
+        // temp.emplace_back(polygon.first->first->vertex);
+        // destroyLinkedMultiPolygon(&polygon);
+        //
+        // ppCoordinates_.reserve(static_cast<qsizetype>(temp.size()));
+        // for (auto &&[lat, lng] : temp) {
+        //     ppCoordinates_.emplace_back(
+        //         QVariant::fromValue(QGeoCoordinate{radsToDegs(lat), radsToDegs(lng), 0}));
+        // }
+        // emit cellsComputed(ppCoordinates_);
+
+
         {
             std::lock_guard lk(mutex_);
             isRequested.store(false);

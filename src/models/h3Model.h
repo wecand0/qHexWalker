@@ -15,7 +15,7 @@ class H3Worker;
 class H3Model final : public QAbstractListModel {
     Q_OBJECT
     Q_DISABLE_COPY_MOVE(H3Model)
-    //Q_PROPERTY(H3Cell READ cursor WRITE setCursor NOTIFY cursorChanged)
+    Q_PROPERTY(QVariantList coordinates READ coordinates NOTIFY coordinatesChanged)
 public:
     enum Roles { ResRole = Qt::UserRole + 1, IndexRole, CellColor, PathRole };
 
@@ -26,7 +26,13 @@ public:
     [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
     [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
 
+    [[nodiscard]]
+    QVariantList coordinates() const noexcept {
+        return coordinates_;
+    }
+
 private slots:
+    void onCellsComputed(const QVariantList &list);
     void onCellComputed(quint8 res, H3Index index, const QVariantList &polygon, bool isSearching);
 
 public:
@@ -40,6 +46,7 @@ public slots:
 signals:
     void clearingStarted();
     void clearingFinished();
+    void coordinatesChanged();
 
 private:
     [[nodiscard]] std::optional<H3Cell *> findCellByID(quint64 id) const;
@@ -51,6 +58,7 @@ private:
     QThread *thread_{};
 
     QList<H3Cell *> pathCells_;
+    QVariantList coordinates_;
 
     const uint8_t minZoom_c{3};
     const uint8_t maxZoom_c{15};
