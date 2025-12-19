@@ -30,6 +30,7 @@ public slots:
     Q_INVOKABLE void clearAllCells();
 
 signals:
+    void onRemoveCell(const std::vector<H3Index> &indexes);
     void onCompute(const std::vector<H3Index> &indexes);
     void clearingStarted();
     void clearingFinished();

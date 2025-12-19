@@ -49,7 +49,7 @@ void H3Worker::doWork() {
 
             // Генерируем лабиринт
             H3Index start = 0, end = 0;
-            walls = mazeGenerator_.generateMaze(centerCell, 15, start, end);
+            walls = mazeGenerator_.generateMaze(start, 15, start, end);
             mazeGenerator_.mazeGenerated(walls);
             SPDLOG_CRITICAL("walls: {}", walls.size());
             for (const auto &wall : walls) {

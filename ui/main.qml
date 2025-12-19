@@ -140,12 +140,30 @@ ApplicationWindow {
                         model: targetsModel
                         spacing: 4
 
-                        // Анимации перемещения (красиво)
-                        move: Transition {
-                            NumberAnimation { properties: "x,y"; duration: 300 }
+                        addDisplaced: Transition {
+                            NumberAnimation {properties: "x, y"; duration: 300}
                         }
                         moveDisplaced: Transition {
-                            NumberAnimation { properties: "x,y"; duration: 300 }
+                            NumberAnimation { properties: "x, y"; duration: 300 }
+                        }
+                        remove: Transition {
+                            NumberAnimation { properties: "x, y"; duration: 300 }
+                            NumberAnimation { properties: "opacity"; duration: 300 }
+                        }
+
+                        removeDisplaced: Transition {
+                            NumberAnimation { properties: "x, y"; duration: 300 }
+                        }
+
+                        displaced: Transition {
+                            NumberAnimation {properties: "x, y"; duration: 300}
+                        }
+
+                        // Анимации перемещения (красиво)
+                        move: Transition {
+                            NumberAnimation {
+                                properties: "x,y"; duration: 300
+                            }
                         }
 
                         delegate: Rectangle {
@@ -157,8 +175,12 @@ ApplicationWindow {
                             radius: 4
                             width: coordinateListView.width
 
-                            Behavior on color { ColorAnimation { duration: 150 } }
 
+                            Behavior on color {
+                                ColorAnimation {
+                                    duration: 150
+                                }
+                            }
                             MouseArea {
                                 id: itemMouseArea
                                 anchors.fill: parent
