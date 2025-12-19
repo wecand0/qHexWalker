@@ -490,6 +490,15 @@ ApplicationWindow {
                 }
             }
             Shortcut {
+                sequence: "z"
+                onActivated: {
+                    centerAnimation.to = mapMouseArea.currentCoordinate
+                    zoomAnimation.to = 3
+                    centerAnimation.start()
+                    zoomAnimation.start()
+                }
+            }
+            Shortcut {
                 sequence: "a"
                 onActivated: {
                     targetsModel.requestCell(map.zoomLevel.toFixed(1), mapMouseArea.currentCoordinate)

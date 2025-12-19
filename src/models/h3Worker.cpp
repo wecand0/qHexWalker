@@ -33,6 +33,29 @@ void H3Worker::doWork() {
             continue;
         }
 
+        QVariantList ppCoordinates_;
+        std::vector<H3Index> outIndexes;
+        LinkedGeoPolygon polygon;
+        cellsToLinkedMultiPolygon(outIndexes.data(), static_cast<int>(outIndexes.size()), &polygon);
+
+        std::vector<LatLng> temp;
+        temp.resize(outIndexes.size());
+
+        auto linkedLatLng = polygon.first->first;
+        while (linkedLatLng) {
+            temp.emplace_back(linkedLatLng->vertex);
+            linkedLatLng = linkedLatLng->next;
+        }
+        // the last one == the first to make loop
+        temp.emplace_back(polygon.first->first->vertex);
+        destroyLinkedMultiPolygon(&polygon);
+
+        ppCoordinates_.reserve(static_cast<qsizetype>(temp.size()));
+        for (auto &&[lat, lng] : temp) {
+            ppCoordinates_.emplace_back(
+                QVariant::fromValue(QGeoCoordinate{radsToDegs(lat), radsToDegs(lng), 0}));
+        }
+
         // if (!isMazeComputed) {
         //     const QGeoCoordinate center{0, 0, 0};
         //     //int radius = 50;
