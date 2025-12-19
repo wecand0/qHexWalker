@@ -53,7 +53,7 @@ MapProviderError MapProvider::isSQLiteFileValidOffline(const QString &filePath) 
 
 void MapProvider::exchangeUrlOffline(const QString &pathToMap) {
     QFile file;
-    file.setFileName(QStringLiteral(":/QHexWalker/style.json"));
+    file.setFileName(QStringLiteral(":/QHexWalker/data/style.json"));
 
     auto isOpened = file.open(QIODevice::ReadOnly);
     if (!isOpened) {
@@ -72,6 +72,6 @@ void MapProvider::exchangeUrlOffline(const QString &pathToMap) {
     tempStyleFile_->write(data);
     tempStyleFile_->close();
 
-    ///setUrl("file:///" + tempStylePreviewFile_->fileName());
-    setUrl(/*"file:///" + */ tempStyleFile_->fileName());
+    setUrl("file:///" + tempStyleFile_->fileName());
+    //setUrl(/*"file:///" + */ tempStyleFile_->fileName());
 }

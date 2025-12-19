@@ -94,7 +94,7 @@ void H3Worker::doWork() {
                     if (!childPolygon.has_value()) {
                         break;
                     }
-                    std::this_thread::sleep_for(170ms);
+                    std::this_thread::sleep_for(1ms);
                     emit cellComputed(getResolution(index), index, childPolygon.value(), false);
                 }
             } catch (const std::exception &e) {

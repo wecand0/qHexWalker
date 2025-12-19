@@ -49,9 +49,9 @@ void EntryPoint::InitMap() {
     mapProvider_ = new MapProvider(this);
     engine_->rootContext()->setContextProperty("mapProvider", mapProvider_);
     logger_->GetLoggerInstance()->info("Map url -> {}", pathUrl_c.toStdString());
-    const QString pathToMap = "mbtiles://" + QDir::currentPath() + QDir::separator() + "map.mbtiles";
-    //mapProvider_->exchangeUrlOffline(pathToMap);
-    mapProvider_->setUrl(pathUrl_c);
+    const QString pathToMap = "mbtiles://" + QDir::currentPath() + QDir::separator() + "maplibre.mbtiles";
+    mapProvider_->exchangeUrlOffline(pathToMap);
+    //->setUrl(pathUrl_c);
 }
 
 void EntryPoint::InitEngine() {

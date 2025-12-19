@@ -131,7 +131,7 @@ qt_add_qml_module(
             ui/main.qml
 
         RESOURCES
-            style.json
+            data/style.json
 )
 
 set_target_properties(
@@ -159,8 +159,8 @@ function(copy_recursive SOURCE_PATH DESTINATION_PATH REGEX)
         configure_file(${file} "${DESTINATION_PATH}/${RELATIVE_FILE_PATH}" COPYONLY)
     endforeach ()
 endfunction()
-
-copy_recursive(${CMAKE_SOURCE_DIR}/data/tiles/ ${CMAKE_CURRENT_BINARY_DIR}/tiles *)
+#
+copy_recursive(${CMAKE_SOURCE_DIR}/data/ ${CMAKE_CURRENT_BINARY_DIR} *)
 
 ########################################
 #
