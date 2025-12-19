@@ -7,6 +7,7 @@
 
 #include <QAbstractListModel>
 
+
 class H3Cell;
 namespace H3_VIEWER {
 class H3Worker;
@@ -14,6 +15,7 @@ class H3Worker;
 class H3Model final : public QAbstractListModel {
     Q_OBJECT
     Q_DISABLE_COPY_MOVE(H3Model)
+    //Q_PROPERTY(H3Cell READ cursor WRITE setCursor NOTIFY cursorChanged)
 public:
     enum Roles { ResRole = Qt::UserRole + 1, IndexRole, CellColor, PathRole };
 

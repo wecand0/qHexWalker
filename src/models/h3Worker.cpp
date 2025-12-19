@@ -33,38 +33,38 @@ void H3Worker::doWork() {
             continue;
         }
 
-        if (!isMazeComputed) {
-            const QGeoCoordinate center{55, 55, 0};
-            int radius = 50;
-
-            // Конвертируем координату в H3
-            LatLng ll{.lat = degsToRads(center.latitude()), .lng = degsToRads(center.longitude())};
-
-            H3Index centerCell = H3_NULL;
-            if (latLngToCell(&ll, 2, &centerCell) != E_SUCCESS) {
-                return;
-            }
-
-            SPDLOG_CRITICAL("walls");
-
-            // Генерируем лабиринт
-            H3Index start = 0x82185ffffffffff, end = 0x821557fffffffff;
-            walls = mazeGenerator_.generateMaze(centerCell, 15, start, end);
-            mazeGenerator_.mazeGenerated(walls);
-            SPDLOG_CRITICAL("walls: {}", walls.size());
-            for (const auto &wall : walls) {
-                auto childPolygon = Helper::indexToPolygon(wall);
-                if (!childPolygon.has_value()) {
-                    break;
-                }
-                // std::this_thread::sleep_for(17ms);
-                emit cellComputed(getResolution(wall), wall, childPolygon.value(), true);
-            }
-            isMazeComputed = true;
-        }
-
-        // Устанавливаем стены в A*
-        astar_->setBlockedCells(walls);
+        // if (!isMazeComputed) {
+        //     const QGeoCoordinate center{0, 0, 0};
+        //     //int radius = 50;
+        //
+        //     // Конвертируем координату в H3
+        //     LatLng ll{.lat = degsToRads(center.latitude()), .lng = degsToRads(center.longitude())};
+        //
+        //     H3Index centerCell = H3_NULL;
+        //     if (latLngToCell(&ll, 2, &centerCell) != E_SUCCESS) {
+        //         return;
+        //     }
+        //
+        //     SPDLOG_CRITICAL("walls");
+        //
+        //     // Генерируем лабиринт
+        //     H3Index start = 0, end = 0;
+        //     walls = mazeGenerator_.generateMaze(centerCell, 15, start, end);
+        //     mazeGenerator_.mazeGenerated(walls);
+        //     SPDLOG_CRITICAL("walls: {}", walls.size());
+        //     for (const auto &wall : walls) {
+        //         auto childPolygon = Helper::indexToPolygon(wall);
+        //         if (!childPolygon.has_value()) {
+        //             break;
+        //         }
+        //         // std::this_thread::sleep_for(17ms);
+        //         emit cellComputed(getResolution(wall), wall, childPolygon.value(), true);
+        //     }
+        //     isMazeComputed = true;
+        // }
+        //
+        // // Устанавливаем стены в A*
+        // astar_->setBlockedCells(walls);
 
         H3Index prevIndex = req.indexes.front();
         std::vector<H3Index> path;
@@ -77,7 +77,7 @@ void H3Worker::doWork() {
                     if (!childPolygon.has_value()) {
                         break;
                     }
-                    std::this_thread::sleep_for(17ms);
+                    std::this_thread::sleep_for(10ms);
                     emit cellComputed(getResolution(index), index, childPolygon.value(), false);
                 }
             } catch (const std::exception &e) {

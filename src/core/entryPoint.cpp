@@ -7,6 +7,8 @@
 
 #include "mapProvider.h"
 
+#include <qdir.h>
+
 EntryPoint::EntryPoint(const std::string &loggerName, QObject *parent) : QObject(parent) {
     InitLogger(loggerName);
 
@@ -47,6 +49,8 @@ void EntryPoint::InitMap() {
     mapProvider_ = new MapProvider(this);
     engine_->rootContext()->setContextProperty("mapProvider", mapProvider_);
     logger_->GetLoggerInstance()->info("Map url -> {}", pathUrl_c.toStdString());
+    const QString pathToMap = "mbtiles://" + QDir::currentPath() + QDir::separator() + "map.mbtiles";
+    //mapProvider_->exchangeUrlOffline(pathToMap);
     mapProvider_->setUrl(pathUrl_c);
 }
 

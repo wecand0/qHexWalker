@@ -102,7 +102,7 @@ ApplicationWindow {
         Rectangle {
             id: paths
 
-            implicitWidth: Screen.width * 0.1
+            implicitWidth: Screen.width * 0.15
             SplitView.maximumWidth:  Screen.width * 0.2
             SplitView.minimumWidth:  Screen.width * 0.1
             color: "#1E252B"
@@ -131,6 +131,7 @@ ApplicationWindow {
                 ScrollView {
                     Layout.fillHeight: true
                     Layout.fillWidth: true
+                    ScrollBar.vertical.policy: ScrollBar.AlwaysOff
                     //clip: true
 
                     ListView {
@@ -138,6 +139,14 @@ ApplicationWindow {
 
                         model: targetsModel
                         spacing: 4
+
+                        // Анимации перемещения (красиво)
+                        move: Transition {
+                            NumberAnimation { properties: "x,y"; duration: 300 }
+                        }
+                        moveDisplaced: Transition {
+                            NumberAnimation { properties: "x,y"; duration: 300 }
+                        }
 
                         delegate: Rectangle {
                             id: listItem
@@ -454,9 +463,6 @@ ApplicationWindow {
                 hoverEnabled: true
 
                 onClicked: event => {
-                    // if (event.button === Qt.LeftButton) {
-                    //     h3Model.requestCell(map.zoomLevel, map.toCoordinate(Qt.point(mouseX, mouseY)));
-                    // }
                     if (event.button === Qt.LeftButton) {
                         currentCoordinate = map.toCoordinate(Qt.point(event.x, event.y));
                     }
@@ -587,6 +593,25 @@ ApplicationWindow {
                             referenceSurface: QtLocation.ReferenceSurface.Globe
                             visible: true
                             z: model ? model.res : 2
+                            MouseArea {
+                                id: mouseID
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                cursorShape: Qt.CrossCursor
+
+                                onClicked: event => {
+                                    if (event.button === Qt.LeftButton) {
+                                        centerAnimation.to = model.coordinate
+                                        zoomAnimation.to = model.zoom
+                                        centerAnimation.start()
+                                        zoomAnimation.start()
+                                    }
+                                    if (event.button === Qt.RightButton) {
+                                        targetsModel.remove(index)
+                                    }
+                                }
+                            }
                         }
 
                         MapQuickItem {
@@ -614,6 +639,25 @@ ApplicationWindow {
                                     id: textMetrics
                                     font: cellText.font
                                     text: cellText.text
+                                }
+                                MouseArea {
+                                    id: mouseRID
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                    cursorShape: Qt.CrossCursor
+
+                                    onClicked: event => {
+                                        if (event.button === Qt.LeftButton) {
+                                            centerAnimation.to = model.coordinate
+                                            zoomAnimation.to = model.zoom
+                                            centerAnimation.start()
+                                            zoomAnimation.start()
+                                        }
+                                        if (event.button === Qt.RightButton) {
+                                            targetsModel.remove(index)
+                                        }
+                                    }
                                 }
                             }
                         }

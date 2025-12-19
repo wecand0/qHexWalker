@@ -129,6 +129,9 @@ qt_add_qml_module(
         RESOURCE_PREFIX "/"
         QML_FILES
             ui/main.qml
+
+        RESOURCES
+            style.json
 )
 
 set_target_properties(
