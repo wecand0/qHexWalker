@@ -63,31 +63,31 @@ void H3Worker::doWork() {
             isMazeComputed = true;
         }
 
-        //для построение лабиринта в entry point и далее создавать единый полигон LinkedGeoPolygon
-//         auto _ = QtConcurrent::run([this, coordinate] {
-//     try {
-//         // Marshal all QObject interactions back to the GUI thread
-//         QMetaObject::invokeMethod(
-//             this,
-//             [this, coordinate] {
-//
-//             },
-//             Qt::BlockingQueuedConnection);
-//     } catch (std::exception &e) {
-//         spdlog::critical(e.what());
-//     }
-// });
+        // для построение лабиринта в entry point и далее создавать единый полигон LinkedGeoPolygon
+        //         auto _ = QtConcurrent::run([this, coordinate] {
+        //     try {
+        //         // Marshal all QObject interactions back to the GUI thread
+        //         QMetaObject::invokeMethod(
+        //             this,
+        //             [this, coordinate] {
+        //
+        //             },
+        //             Qt::BlockingQueuedConnection);
+        //     } catch (std::exception &e) {
+        //         spdlog::critical(e.what());
+        //     }
+        // });
 
         // Устанавливаем стены в A*
         astar_->setBlockedCells(walls);
 
         H3Index prevIndex = req.indexes.front();
         std::vector<H3Index> path;
-      //  std::vector<H3Index> tempV;
+        //  std::vector<H3Index> tempV;
         for (size_t indexId = 1; indexId < req.indexes.size(); indexId++) {
             try {
                 path = astar_->findShortestPath(prevIndex, req.indexes.at(indexId));
-//                std::ranges::copy(tempV, std::back_inserter(path));
+                //                std::ranges::copy(tempV, std::back_inserter(path));
                 prevIndex = req.indexes.at(indexId);
                 for (const auto index : path) {
                     auto childPolygon = Helper::indexToPolygon(index);
@@ -125,7 +125,6 @@ void H3Worker::doWork() {
         //         QVariant::fromValue(QGeoCoordinate{radsToDegs(lat), radsToDegs(lng), 0}));
         // }
         // emit cellsComputed(ppCoordinates_);
-
 
         {
             std::lock_guard lk(mutex_);

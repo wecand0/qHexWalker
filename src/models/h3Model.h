@@ -7,7 +7,6 @@
 
 #include <QAbstractListModel>
 
-
 class H3Cell;
 namespace H3_VIEWER {
 class H3Worker;

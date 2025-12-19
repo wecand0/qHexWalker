@@ -73,5 +73,5 @@ void MapProvider::exchangeUrlOffline(const QString &pathToMap) {
     tempStyleFile_->close();
 
     setUrl("file:///" + tempStyleFile_->fileName());
-    //setUrl(/*"file:///" + */ tempStyleFile_->fileName());
+    // setUrl(/*"file:///" + */ tempStyleFile_->fileName());
 }

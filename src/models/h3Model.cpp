@@ -1,6 +1,6 @@
 #include "h3Model.h"
-#include "h3Worker.h"
 #include "h3Cell.h"
+#include "h3Worker.h"
 #include <algorithm>
 
 H3Model::H3Model(QObject *parent) : QAbstractListModel(parent) {
@@ -142,7 +142,7 @@ void H3Model::requestCells(const std::vector<H3Index> &indexes) {
     }
     // Если есть старые ячейки, очищаем их перед добавлением новой
     if (!pathCells_.empty()) {
-         //clearAllCells();
+        // clearAllCells();
 
         if (!isClearing_) {
             worker_->requestCell(indexes);
