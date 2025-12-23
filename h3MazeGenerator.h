@@ -1,4 +1,5 @@
-#pragma once
+#ifndef QHEXWALKER_H3MAZEGENERATOR_H
+#define QHEXWALKER_H3MAZEGENERATOR_H
 
 #include <QObject>
 #include <h3/h3api.h>
@@ -33,3 +34,5 @@ private:
     // Получает все соты в радиусе
     std::unordered_set<H3Index, H3IndexHash> getCellsInRadius(const H3Index center, int radius);
 };
+
+#endif  // QHEXWALKER_H3MAZEGENERATOR_H

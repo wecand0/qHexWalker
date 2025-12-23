@@ -4,6 +4,8 @@
 #include <QGeoCoordinate>
 #include <QVariantList>
 #include <h3/h3api.h>
+#include <cmath>
+#include <vector>
 
 namespace H3_VIEWER {
 struct Helper {
@@ -52,6 +54,62 @@ struct Helper {
         polygon.emplace_back(QVariant::fromValue(QGeoCoordinate{firstLat, firstLng, 0}));
 
         return polygon;
+    }
+
+    // Находит общее ребро (2 вершины) между двумя соседними ячейками H3
+    static std::optional<QVariantList> getSharedEdge(const H3Index cell1, const H3Index cell2) {
+        CellBoundary boundary1{}, boundary2{};
+
+        if (cellToBoundary(cell1, &boundary1) != E_SUCCESS ||
+            cellToBoundary(cell2, &boundary2) != E_SUCCESS) {
+            return std::nullopt;
+        }
+
+        if (boundary1.numVerts == 0 || boundary2.numVerts == 0) {
+            return std::nullopt;
+        }
+
+        // Находим общие вершины (должно быть ровно 2 для соседних шестиугольников)
+        std::vector<LatLng> sharedVertices;
+        constexpr double EPSILON = 1e-9; // Порог для сравнения координат
+
+        for (int i = 0; i < boundary1.numVerts; ++i) {
+            for (int j = 0; j < boundary2.numVerts; ++j) {
+                const double latDiff = std::abs(boundary1.verts[i].lat - boundary2.verts[j].lat);
+                const double lngDiff = std::abs(boundary1.verts[i].lng - boundary2.verts[j].lng);
+
+                if (latDiff < EPSILON && lngDiff < EPSILON) {
+                    sharedVertices.push_back(boundary1.verts[i]);
+                    break;
+                }
+            }
+        }
+
+        if (sharedVertices.size() != 2) {
+            // Не соседи или ошибка
+            return std::nullopt;
+        }
+
+        // Создаем линию из двух точек
+        QVariantList line;
+        line.reserve(2);
+
+        const double lat1 = radsToDegs(sharedVertices[0].lat);
+        const double lng1 = radsToDegs(sharedVertices[0].lng);
+        const double lat2 = radsToDegs(sharedVertices[1].lat);
+        double lng2 = radsToDegs(sharedVertices[1].lng);
+
+        // Обрабатываем антимеридиан
+        if (const double delta = lng2 - lng1; delta > 180.0) {
+            lng2 -= 360.0;
+        } else if (delta < -180.0) {
+            lng2 += 360.0;
+        }
+
+        line.emplace_back(QVariant::fromValue(QGeoCoordinate{lat1, lng1, 0}));
+        line.emplace_back(QVariant::fromValue(QGeoCoordinate{lat2, lng2, 0}));
+
+        return line;
     }
 };
 }  // namespace H3_VIEWER

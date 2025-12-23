@@ -41,7 +41,7 @@ public slots:
 signals:
     void finished();
     // Результат пересчета: разрешение, идентификатор H3 и полигон ячейки
-    void cellComputed(quint8 res, H3Index id, const QVariantList &polygon, bool isSearching);
+    void cellComputed(quint8 res, H3Index id, const QVariantList &polygon, bool isSearching, bool isPentagon = false);
 
     void cellsComputed(const QVariantList &polygon);
 

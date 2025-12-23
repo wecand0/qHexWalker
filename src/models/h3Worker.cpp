@@ -35,33 +35,60 @@ void H3Worker::doWork() {
 
         if (!isMazeComputed) {
             const QGeoCoordinate center{0, 0, 0};
-            // int radius = 50;
+            int radius = 20;
 
             // Конвертируем координату в H3
             LatLng ll{.lat = degsToRads(center.latitude()), .lng = degsToRads(center.longitude())};
 
             H3Index centerCell = H3_NULL;
             if (latLngToCell(&ll, 2, &centerCell) != E_SUCCESS) {
+                spdlog::error("Failed to convert center coordinates to H3");
                 return;
             }
 
-            SPDLOG_CRITICAL("walls");
+            spdlog::info("Generating maze at center cell with radius {}", radius);
 
-            // Генерируем лабиринт
-            H3Index start = 0, end = 0;
-            walls = mazeGenerator_.generateMaze(start, 15, start, end);
-            mazeGenerator_.mazeGenerated(walls);
-            SPDLOG_CRITICAL("walls: {}", walls.size());
-            for (const auto &wall : walls) {
-                auto childPolygon = Helper::indexToPolygon(wall);
-                if (!childPolygon.has_value()) {
-                    break;
-                }
-                // std::this_thread::sleep_for(17ms);
-                emit cellComputed(getResolution(wall), wall, childPolygon.value(), true);
-            }
+            // Генерируем клеточный лабиринт (возвращает клетки-стены)
+            H3Index start = 0x8235affffffffff, end = 0x827c6ffffffffff;
+            walls = mazeGenerator_.generateMaze(centerCell, radius, start, end);
+
+            spdlog::info("Cell maze generated: {} wall cells, start={}, end={}", walls.size(), start, end);
             isMazeComputed = true;
+            spdlog::info("Maze generation complete");
         }
+            // Получаем все клетки в области лабиринта
+            // auto allCells = mazeGenerator_.getCellsInRadius(centerCell, radius);
+            // spdlog::info("Total maze cells: {}", allCells.size());
+            //
+            // // Клетки-стены используются для блокировки в A*
+            // walls.clear();
+            // walls.insert(wallCells.begin(), wallCells.end());
+
+            // Визуализация: отрисовываем ВСЕ клетки лабиринта
+            // Стены - темный цвет, проходы - светлый цвет
+            for (const auto &cell : walls) {
+                auto cellPolygon = Helper::indexToPolygon(cell);
+                if (!cellPolygon.has_value()) {
+                    continue;
+                }
+
+                //std::this_thread::sleep_for(1ms);
+
+                emit cellComputed(getResolution(cell), cell, cellPolygon.value(), true);
+            }
+
+
+        // std::vector<H3Index> pentagons;
+        // auto pSize = pentagonCount();
+        // pentagons.resize(pSize);
+        // getPentagons(2, pentagons.data());
+        // for (const auto &pentagon : pentagons) {
+        //     auto pentagonPolygon = Helper::indexToPolygon(pentagon);
+        //     if (!pentagonPolygon.has_value()) {
+        //         continue;
+        //     }
+        //     emit cellComputed(getResolution(pentagon), pentagon, pentagonPolygon.value(), false);
+        // }
 
         // для построение лабиринта в entry point и далее создавать единый полигон LinkedGeoPolygon
         //         auto _ = QtConcurrent::run([this, coordinate] {
@@ -79,7 +106,7 @@ void H3Worker::doWork() {
         // });
 
         // Устанавливаем стены в A*
-        astar_->setBlockedCells(walls);
+       // astar_->setBlockedCells(walls);
 
         H3Index prevIndex = req.indexes.front();
         std::vector<H3Index> path;

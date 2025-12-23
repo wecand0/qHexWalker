@@ -53,8 +53,9 @@ void EntryPoint::InitMap() {
 #ifndef __APPLE__
     const QString pathToMap = "mbtiles://" + QDir::currentPath() + QDir::separator() + "maplibre.mbtiles";
     mapProvider_->exchangeUrlOffline(pathToMap);
-#endif
+#else
     mapProvider_->setUrl(pathUrl_c);
+#endif
 }
 
 void EntryPoint::InitEngine() {

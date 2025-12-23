@@ -4,9 +4,7 @@
 #include <spdlog/spdlog.h>
 #include <stack>
 
-H3MazeGenerator::H3MazeGenerator(QObject *parent) : QObject(parent) {
-    rng_.seed(std::chrono::system_clock::now().time_since_epoch().count());
-}
+H3MazeGenerator::H3MazeGenerator(QObject *parent) : QObject(parent), rng_(std::random_device{}()) {}
 
 std::vector<H3Index> H3MazeGenerator::getNeighbors(const H3Index cell) {
     std::array<H3Index, 7> ring = {};
@@ -19,7 +17,7 @@ std::vector<H3Index> H3MazeGenerator::getNeighbors(const H3Index cell) {
 
     for (const auto &neighbor : ring) {
         if (neighbor != H3_NULL && neighbor != cell) {
-            neighbors.emplace_back(neighbor);
+            neighbors.push_back(neighbor);
         }
     }
 
@@ -27,26 +25,21 @@ std::vector<H3Index> H3MazeGenerator::getNeighbors(const H3Index cell) {
 }
 
 std::unordered_set<H3Index, H3MazeGenerator::H3IndexHash> H3MazeGenerator::getCellsInRadius(const H3Index center,
-                                                                                            const int radius) {
+                                                                                            int radius) {
     std::unordered_set<H3Index, H3IndexHash> cells;
 
     int64_t maxSize = 0;
-    H3Error err = maxGridDiskSize(radius, &maxSize);
-    if (err != E_SUCCESS) {
-        spdlog::warn(describeH3Error(err));
+    if (maxGridDiskSize(radius, &maxSize) != E_SUCCESS) {
         return cells;
     }
 
     std::vector<H3Index> disk(maxSize);
-    err = gridDisk(center, radius, disk.data());
-    if (err != E_SUCCESS) {
-        spdlog::warn(describeH3Error(err));
+    if (gridDisk(center, radius, disk.data()) != E_SUCCESS) {
         return cells;
     }
 
-    //skip pentagons
     for (const auto &cell : disk) {
-        if (cell != H3_NULL && !isPentagon(cell) && isValidIndex(cell)) {
+        if (cell != H3_NULL) {
             cells.insert(cell);
         }
     }
@@ -72,7 +65,7 @@ std::unordered_set<H3Index> H3MazeGenerator::generateMaze(const H3Index centerCe
     std::unordered_set<H3Index, H3IndexHash> nodes;
 
     for (size_t i = 0; i < allCellsVec.size(); i += 3) {
-        nodes.insert(allCellsVec.at(i));
+        nodes.insert(allCellsVec[i]);
     }
 
     if (nodes.empty()) {
@@ -82,7 +75,7 @@ std::unordered_set<H3Index> H3MazeGenerator::generateMaze(const H3Index centerCe
     spdlog::info("Created {} nodes for maze", nodes.size());
 
     // Шаг 2: Выбираем случайный стартовый узел
-    std::vector nodesVec(nodes.begin(), nodes.end());
+    std::vector<H3Index> nodesVec(nodes.begin(), nodes.end());
     std::uniform_int_distribution<size_t> startDist(0, nodesVec.size() - 1);
     outStart = nodesVec[startDist(rng_)];
 
@@ -98,22 +91,22 @@ std::unordered_set<H3Index> H3MazeGenerator::generateMaze(const H3Index centerCe
     while (!stack.empty()) {
         H3Index current = stack.top();
 
-        // Находим не посещённых соседей среди узлов
+        // Находим непосещённых соседей среди узлов
         auto currentNeighbors = getNeighbors(current);
         std::vector<H3Index> unvisitedNeighbors;
 
         // Проверяем соседей первого уровня
         for (const auto &n1 : currentNeighbors) {
-            if (nodes.contains(n1) && !visited.contains(n1)) {
+            if (nodes.count(n1) && !visited.count(n1)) {
                 unvisitedNeighbors.push_back(n1);
             }
 
             // Проверяем соседей второго уровня
             auto n1Neighbors = getNeighbors(n1);
             for (const auto &n2 : n1Neighbors) {
-                if (n2 != current && nodes.contains(n2) && !visited.contains(n2)) {
-                    // Проверяем, что n2 ещё не в списке
-                    if (std::ranges::find(unvisitedNeighbors, n2) ==
+                if (n2 != current && nodes.count(n2) && !visited.count(n2)) {
+                    // Проверяем что n2 ещё не в списке
+                    if (std::find(unvisitedNeighbors.begin(), unvisitedNeighbors.end(), n2) ==
                         unvisitedNeighbors.end()) {
                         unvisitedNeighbors.push_back(n2);
                     }
@@ -121,11 +114,10 @@ std::unordered_set<H3Index> H3MazeGenerator::generateMaze(const H3Index centerCe
             }
         }
 
-        //FIXME никогда не использовал goto, знаю плохо это, но пока так
         if (!unvisitedNeighbors.empty()) {
             // Случайно выбираем соседа
-            std::ranges::shuffle(unvisitedNeighbors, rng_);
-            H3Index next = unvisitedNeighbors.front();
+            std::shuffle(unvisitedNeighbors.begin(), unvisitedNeighbors.end(), rng_);
+            H3Index next = unvisitedNeighbors[0];
 
             // Отмечаем как посещённый
             visited.insert(next);
@@ -137,9 +129,9 @@ std::unordered_set<H3Index> H3MazeGenerator::generateMaze(const H3Index centerCe
 
             // Проверяем общих соседей
             for (const auto &cn : currentNeighbors) {
-                if (allCells.contains(cn)) {
+                if (allCells.count(cn)) {
                     for (const auto &nn : nextNeighbors) {
-                        if (cn == nn && !nodes.contains(cn)) {
+                        if (cn == nn && !nodes.count(cn)) {
                             // Нашли общего соседа - делаем его проходом
                             passages.insert(cn);
                             goto corridor_found;
@@ -150,7 +142,7 @@ std::unordered_set<H3Index> H3MazeGenerator::generateMaze(const H3Index centerCe
 
             // Если нет общего соседа, ищем путь через две соты
             for (const auto &cn : currentNeighbors) {
-                if (!allCells.contains(cn) || nodes.contains(cn)) continue;
+                if (!allCells.count(cn) || nodes.count(cn)) continue;
 
                 auto cnNeighbors = getNeighbors(cn);
                 for (const auto &cnn : cnNeighbors) {
@@ -160,7 +152,7 @@ std::unordered_set<H3Index> H3MazeGenerator::generateMaze(const H3Index centerCe
                         goto corridor_found;
                     }
 
-                    if (allCells.contains(cnn) && !nodes.contains(cnn)) {
+                    if (allCells.count(cnn) && !nodes.count(cnn)) {
                         auto cnnNeighbors = getNeighbors(cnn);
                         for (const auto &cnnn : cnnNeighbors) {
                             if (cnnn == next) {
@@ -202,7 +194,7 @@ std::unordered_set<H3Index> H3MazeGenerator::generateMaze(const H3Index centerCe
     // Шаг 5: Создаём стены (все соты минус проходы)
     std::unordered_set<H3Index> walls;
     for (const auto &cell : allCells) {
-        if (!passages.contains(cell)) {
+        if (!passages.count(cell)) {
             walls.insert(cell);
         }
     }

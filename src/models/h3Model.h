@@ -32,7 +32,7 @@ public:
 
 private slots:
     void onCellsComputed(const QVariantList &list);
-    void onCellComputed(quint8 res, H3Index index, const QVariantList &polygon, bool isSearching);
+    void onCellComputed(quint8 res, H3Index index, const QVariantList &polygon, bool isSearching, bool isPentagon = false);
 
 public:
     void Init();
@@ -52,6 +52,9 @@ private:
     [[nodiscard]] std::optional<H3Cell *> findCellByRes(quint8 res) const;
     [[nodiscard]] bool isCoordinateTargetValid(quint8 zoom, const QGeoCoordinate &coordinate) const;
     [[nodiscard]] QString getColorForResolution(quint8 resolution) const;
+
+    void addCell(quint8 res, H3Index index, const QVariantList &polygon, const QColor &color);
+    void addPentagons();
 
     H3_VIEWER::H3Worker *worker_{};
     QThread *thread_{};
