@@ -49,72 +49,53 @@ void H3Worker::doWork() {
             spdlog::info("Generating maze at center cell with radius {}", radius);
 
             // Генерируем клеточный лабиринт (возвращает клетки-стены)
-            H3Index start = 0x8235affffffffff, end = 0x827c6ffffffffff;
-            walls = mazeGenerator_.generateMaze(centerCell, radius, start, end);
+            walls = mazeGenerator_.generateMaze(centerCell, radius);
 
-            spdlog::info("Cell maze generated: {} wall cells, start={}, end={}", walls.size(), start, end);
+            spdlog::info("Cell maze generated: {} wall cells", walls.size());
             isMazeComputed = true;
             spdlog::info("Maze generation complete");
-        }
-            // Получаем все клетки в области лабиринта
-            // auto allCells = mazeGenerator_.getCellsInRadius(centerCell, radius);
-            // spdlog::info("Total maze cells: {}", allCells.size());
-            //
-            // // Клетки-стены используются для блокировки в A*
-            // walls.clear();
-            // walls.insert(wallCells.begin(), wallCells.end());
 
-            // Визуализация: отрисовываем ВСЕ клетки лабиринта
-            // Стены - темный цвет, проходы - светлый цвет
-            for (const auto &cell : walls) {
-                auto cellPolygon = Helper::indexToPolygon(cell);
-                if (!cellPolygon.has_value()) {
+            int64_t ringSize = 0;
+            maxGridDiskSize(radius, &ringSize);
+            std::vector<H3Index> distances(ringSize);
+
+            gridRing(centerCell, radius, distances.data());
+            distances.shrink_to_fit();
+
+            const H3Index zeroCell = distances.front();
+            const H3Index middleCell = getMiddleOfRing(distances, zeroCell);
+
+            deleteStartEndEntities(zeroCell, middleCell);
+
+            for (size_t cellId = 0; cellId < distances.size(); cellId++) {
+                if (cellId == 0) {
                     continue;
                 }
-
-                //std::this_thread::sleep_for(1ms);
-
-                emit cellComputed(getResolution(cell), cell, cellPolygon.value(), true);
+                if (distances.at(cellId) == middleCell) {
+                    continue;
+                }
+                walls.insert(distances.at(cellId));
             }
+        }
 
-
-        // std::vector<H3Index> pentagons;
-        // auto pSize = pentagonCount();
-        // pentagons.resize(pSize);
-        // getPentagons(2, pentagons.data());
-        // for (const auto &pentagon : pentagons) {
-        //     auto pentagonPolygon = Helper::indexToPolygon(pentagon);
-        //     if (!pentagonPolygon.has_value()) {
-        //         continue;
-        //     }
-        //     emit cellComputed(getResolution(pentagon), pentagon, pentagonPolygon.value(), false);
-        // }
-
-        // для построение лабиринта в entry point и далее создавать единый полигон LinkedGeoPolygon
-        //         auto _ = QtConcurrent::run([this, coordinate] {
-        //     try {
-        //         // Marshal all QObject interactions back to the GUI thread
-        //         QMetaObject::invokeMethod(
-        //             this,
-        //             [this, coordinate] {
-        //
-        //             },
-        //             Qt::BlockingQueuedConnection);
-        //     } catch (std::exception &e) {
-        //         spdlog::critical(e.what());
-        //     }
-        // });
+        // Визуализация: обрисовываем ВСЕ клетки лабиринта
+        // Стены - темный цвет, проходы - светлый цвет
+        for (const auto cell : walls) {
+            auto cellPolygon = Helper::indexToPolygon(cell);
+            if (!cellPolygon.has_value()) {
+                continue;
+            }
+            emit cellComputed(getResolution(cell), cell, cellPolygon.value(), true);
+        }
 
         // Устанавливаем стены в A*
-       // astar_->setBlockedCells(walls);
+        astar_->setBlockedCells(walls);
 
         H3Index prevIndex = req.indexes.front();
         std::vector<H3Index> path;
-        //  std::vector<H3Index> tempV;
         for (size_t indexId = 1; indexId < req.indexes.size(); indexId++) {
             try {
                 path = astar_->findShortestPath(prevIndex, req.indexes.at(indexId));
-                //                std::ranges::copy(tempV, std::back_inserter(path));
                 prevIndex = req.indexes.at(indexId);
                 for (const auto index : path) {
                     auto childPolygon = Helper::indexToPolygon(index);
@@ -173,4 +154,55 @@ void H3Worker::requestCell(const std::vector<H3Index> &index) {
         isRequested.store(true);
     }
     cv_.notify_one();
+}
+void H3Worker::deleteStartEndEntities(H3Index start, H3Index end) {
+    // start
+    int64_t maxSize = 0;
+    H3Error err = maxGridDiskSize(3, &maxSize);
+    if (err != E_SUCCESS) {
+        spdlog::warn(describeH3Error(err));
+    }
+
+    std::vector<H3Index> disk(maxSize);
+    err = gridDisk(start, 3, disk.data());
+    if (err != E_SUCCESS) {
+        spdlog::warn(describeH3Error(err));
+    }
+    for (auto d : disk) {
+        if (walls.contains(d)) {
+            walls.erase(d);
+        }
+    }
+
+    // end
+    std::vector<H3Index> disk2(maxSize);
+    err = gridDisk(end, 3, disk2.data());
+    if (err != E_SUCCESS) {
+        spdlog::warn(describeH3Error(err));
+    }
+    for (auto d : disk2) {
+        if (walls.contains(d)) {
+            walls.erase(d);
+        }
+    }
+}
+H3Index H3Worker::getMiddleOfRing(const std::vector<H3Index> &distances, H3Index zeroCell) {
+    LatLng zeroLatLng;
+    cellToLatLng(zeroCell, &zeroLatLng);
+    double dist = 0;
+    LatLng ll;
+    H3Index middleCell = H3_NULL;
+    for (size_t cellId = 0; cellId < distances.size(); cellId++) {
+        if (cellId == 0) {
+            continue;
+        }
+        cellToLatLng(distances.at(cellId), &ll);
+
+        auto distTemp = greatCircleDistanceM(&zeroLatLng, &ll);
+        if (distTemp > dist) {
+            dist = distTemp;
+            middleCell = distances.at(cellId);
+        }
+    }
+    return middleCell;
 }

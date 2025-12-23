@@ -3,8 +3,8 @@
 
 #include <QGeoCoordinate>
 #include <QVariantList>
-#include <h3/h3api.h>
 #include <cmath>
+#include <h3/h3api.h>
 #include <vector>
 
 namespace H3_VIEWER {
@@ -60,8 +60,7 @@ struct Helper {
     static std::optional<QVariantList> getSharedEdge(const H3Index cell1, const H3Index cell2) {
         CellBoundary boundary1{}, boundary2{};
 
-        if (cellToBoundary(cell1, &boundary1) != E_SUCCESS ||
-            cellToBoundary(cell2, &boundary2) != E_SUCCESS) {
+        if (cellToBoundary(cell1, &boundary1) != E_SUCCESS || cellToBoundary(cell2, &boundary2) != E_SUCCESS) {
             return std::nullopt;
         }
 
@@ -71,7 +70,7 @@ struct Helper {
 
         // Находим общие вершины (должно быть ровно 2 для соседних шестиугольников)
         std::vector<LatLng> sharedVertices;
-        constexpr double EPSILON = 1e-9; // Порог для сравнения координат
+        constexpr double EPSILON = 1e-9;  // Порог для сравнения координат
 
         for (int i = 0; i < boundary1.numVerts; ++i) {
             for (int j = 0; j < boundary2.numVerts; ++j) {

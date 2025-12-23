@@ -73,8 +73,6 @@ void H3Model::Init() {
     connect(worker_, &H3_VIEWER::H3Worker::cellsComputed, this, &H3Model::onCellsComputed, Qt::QueuedConnection);
     thread_->start();
 
-
-
     // auto _ = QtConcurrent::run([this] {
     //     try {
     //         // Marshal all QObject interactions back to the GUI thread
@@ -156,7 +154,6 @@ void H3Model::addPentagons() {
             onCellComputed(getResolution(pentagon), pentagon, pentagonPolygon.value(), false, true);
         }
     }
-
 }
 
 void H3Model::onCellsComputed(const QVariantList &list) {
@@ -164,8 +161,7 @@ void H3Model::onCellsComputed(const QVariantList &list) {
     emit coordinatesChanged();
 }
 
-void H3Model::onCellComputed(const quint8 res, const H3Index index, const QVariantList &polygon,
-                             const bool isSearching,
+void H3Model::onCellComputed(const quint8 res, const H3Index index, const QVariantList &polygon, const bool isSearching,
                              const bool isPentagon) {
     // Не добавляем новые ячейки во время очистки
     if (isClearing_) {
@@ -173,7 +169,7 @@ void H3Model::onCellComputed(const quint8 res, const H3Index index, const QVaria
     }
     if (isPentagon) {
         addCell(res, index, polygon, "black");
-    }else {
+    } else {
         addCell(res, index, polygon, isSearching ? "gray" : getColorForResolution(res));
     }
 }
@@ -184,7 +180,7 @@ void H3Model::requestCells(const std::vector<H3Index> &indexes) {
     }
     // Если есть старые ячейки, очищаем их перед добавлением новой
     if (!pathCells_.empty()) {
-        clearAllCells();
+        // clearAllCells();
 
         if (!isClearing_) {
             worker_->requestCell(indexes);

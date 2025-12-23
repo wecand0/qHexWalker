@@ -32,7 +32,8 @@ public:
 
 private slots:
     void onCellsComputed(const QVariantList &list);
-    void onCellComputed(quint8 res, H3Index index, const QVariantList &polygon, bool isSearching, bool isPentagon = false);
+    void onCellComputed(quint8 res, H3Index index, const QVariantList &polygon, bool isSearching,
+                        bool isPentagon = false);
 
 public:
     void Init();

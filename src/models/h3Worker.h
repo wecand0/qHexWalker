@@ -46,6 +46,8 @@ signals:
     void cellsComputed(const QVariantList &polygon);
 
 private:
+    void deleteStartEndEntities(H3Index start, H3Index end);
+    H3Index getMiddleOfRing(const std::vector<H3Index> &distances, H3Index zeroCell);
     std::unordered_set<H3Index> walls;
     bool isMazeComputed = false;
     H3AStar *astar_{};

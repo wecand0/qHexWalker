@@ -18,7 +18,7 @@ public:
     };
 
     // Главный метод генерации лабиринта
-    std::unordered_set<H3Index> generateMaze(const H3Index centerCell, int radius, H3Index &outStart, H3Index &outEnd);
+    std::unordered_set<H3Index> generateMaze(const H3Index centerCell, int radius);
 
 signals:
     void generationProgress(int percent);

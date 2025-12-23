@@ -4,8 +4,8 @@
 #include <spdlog/spdlog.h>
 #include <stack>
 
-H3MazeGenerator::H3MazeGenerator(QObject *parent) : QObject(parent) {
-    rng_.seed(std::chrono::system_clock::now().time_since_epoch().count());
+H3MazeGenerator::H3MazeGenerator(QObject *parent) : QObject(parent), rng_(std::random_device{}()) {
+    //rng_.seed(std::chrono::system_clock::now().time_since_epoch().count());
 }
 
 std::vector<H3Index> H3MazeGenerator::getNeighbors(const H3Index cell) {
@@ -38,13 +38,15 @@ std::unordered_set<H3Index, H3MazeGenerator::H3IndexHash> H3MazeGenerator::getCe
     }
 
     std::vector<H3Index> disk(maxSize);
+
     err = gridDisk(center, radius, disk.data());
     if (err != E_SUCCESS) {
         spdlog::warn(describeH3Error(err));
         return cells;
     }
 
-    //skip pentagons
+    // skip pentagons
+    cells.reserve(maxSize);
     for (const auto &cell : disk) {
         if (cell != H3_NULL && !isPentagon(cell) && isValidIndex(cell)) {
             cells.insert(cell);
@@ -54,8 +56,7 @@ std::unordered_set<H3Index, H3MazeGenerator::H3IndexHash> H3MazeGenerator::getCe
     return cells;
 }
 
-std::unordered_set<H3Index> H3MazeGenerator::generateMaze(const H3Index centerCell, int radius, H3Index &outStart,
-                                                          H3Index &outEnd) {
+std::unordered_set<H3Index> H3MazeGenerator::generateMaze(const H3Index centerCell, int radius) {
     spdlog::info("Generating H3 maze with center cell, radius={}", radius);
 
     // Получаем все соты в радиусе
@@ -84,7 +85,7 @@ std::unordered_set<H3Index> H3MazeGenerator::generateMaze(const H3Index centerCe
     // Шаг 2: Выбираем случайный стартовый узел
     std::vector nodesVec(nodes.begin(), nodes.end());
     std::uniform_int_distribution<size_t> startDist(0, nodesVec.size() - 1);
-    outStart = nodesVec[startDist(rng_)];
+    H3Index outStart = nodesVec.at(startDist(rng_));
 
     // Шаг 3: Генерация лабиринта методом Recursive Backtracker
     std::stack<H3Index> stack;
@@ -113,15 +114,14 @@ std::unordered_set<H3Index> H3MazeGenerator::generateMaze(const H3Index centerCe
             for (const auto &n2 : n1Neighbors) {
                 if (n2 != current && nodes.contains(n2) && !visited.contains(n2)) {
                     // Проверяем, что n2 ещё не в списке
-                    if (std::ranges::find(unvisitedNeighbors, n2) ==
-                        unvisitedNeighbors.end()) {
+                    if (std::ranges::find(unvisitedNeighbors, n2) == unvisitedNeighbors.end()) {
                         unvisitedNeighbors.push_back(n2);
                     }
                 }
             }
         }
 
-        //FIXME никогда не использовал goto, знаю плохо это, но пока так
+        // FIXME никогда не использовал goto, знаю плохо это, но пока так
         if (!unvisitedNeighbors.empty()) {
             // Случайно выбираем соседа
             std::ranges::shuffle(unvisitedNeighbors, rng_);
@@ -150,7 +150,8 @@ std::unordered_set<H3Index> H3MazeGenerator::generateMaze(const H3Index centerCe
 
             // Если нет общего соседа, ищем путь через две соты
             for (const auto &cn : currentNeighbors) {
-                if (!allCells.contains(cn) || nodes.contains(cn)) continue;
+                if (!allCells.contains(cn) || nodes.contains(cn))
+                    continue;
 
                 auto cnNeighbors = getNeighbors(cn);
                 for (const auto &cnn : cnNeighbors) {
@@ -183,21 +184,21 @@ std::unordered_set<H3Index> H3MazeGenerator::generateMaze(const H3Index centerCe
     }
 
     // Шаг 4: Находим наиболее удалённый узел для выхода
-    double maxDist = 0.0;
-    outEnd = outStart;
-    LatLng startCoord;
-    cellToLatLng(outStart, &startCoord);
-
-    for (const auto &node : visited) {
-        LatLng nodeCoord;
-        if (cellToLatLng(node, &nodeCoord) == E_SUCCESS) {
-            double dist = greatCircleDistanceM(&startCoord, &nodeCoord);
-            if (dist > maxDist) {
-                maxDist = dist;
-                outEnd = node;
-            }
-        }
-    }
+    // double maxDist = 0.0;
+    // H3Index outEnd = outStart;
+    // LatLng startCoord;
+    // cellToLatLng(outStart, &startCoord);
+    //
+    // for (const auto &node : visited) {
+    //     LatLng nodeCoord;
+    //     if (cellToLatLng(node, &nodeCoord) == E_SUCCESS) {
+    //         double dist = greatCircleDistanceM(&startCoord, &nodeCoord);
+    //         if (dist > maxDist) {
+    //             maxDist = dist;
+    //             outEnd = node;
+    //         }
+    //     }
+    // }
 
     // Шаг 5: Создаём стены (все соты минус проходы)
     std::unordered_set<H3Index> walls;

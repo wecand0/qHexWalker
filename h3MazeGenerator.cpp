@@ -142,7 +142,8 @@ std::unordered_set<H3Index> H3MazeGenerator::generateMaze(const H3Index centerCe
 
             // Если нет общего соседа, ищем путь через две соты
             for (const auto &cn : currentNeighbors) {
-                if (!allCells.count(cn) || nodes.count(cn)) continue;
+                if (!allCells.count(cn) || nodes.count(cn))
+                    continue;
 
                 auto cnNeighbors = getNeighbors(cn);
                 for (const auto &cnn : cnNeighbors) {
