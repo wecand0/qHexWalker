@@ -605,8 +605,9 @@ ApplicationWindow {
                     text: " Press 'r' to clear all cells "
                 }
             }
+            // Отображение объединённых полигонов стен лабиринта
             MapPolygon {
-                id: maze
+                id: polygon
 
                 border.color: "white"
                 border.width: 1
@@ -615,6 +616,96 @@ ApplicationWindow {
                 path: h3Model ? h3Model.coordinates : []
                 autoFadeIn: false
             }
+            // MapItemView {
+            //     id: gsoPolygon
+            //
+            //     model: h3Model ? h3Model : null
+            //     visible: true
+            //
+            //     delegate: MapPolygon {
+            //         id: cellLine
+            //
+            //         autoFadeIn: false
+            //         border.color: "black"
+            //         border.width: 1
+            //         color: "blue"
+            //         opacity: 1
+            //         path: model ? model.mazePolygons : []
+            //         referenceSurface: QtLocation.ReferenceSurface.Globe
+            //         visible: true
+            //         z: 1
+            //     }
+            // }
+            // Repeater {
+            //     id: mazePolygons
+            //     model: h3Model ? h3Model : null
+            //
+            //     MapPolygon {
+            //         border.color: "white"
+            //         border.width: 1
+            //         color: Qt.rgba(0.64, 0.0, 0.0, 0.3)
+            //         opacity: 0.75
+            //         path: model ? model.mazePolygons : []
+            //         autoFadeIn: false
+            //         referenceSurface: QtLocation.ReferenceSurface.Globe
+            //     }
+            // }
+
+            // Repeater {
+            //     id: mazePolygonsid
+            //     model: h3Model.mazePolygons  // прямо ваш QList<QVariantList> становится JS-массивом массивов
+            //
+            //     delegate: MapPolygon {
+            //         path: modelData  // modelData — это один QVariantList (массив координат для одного полигона)
+            //         opacity: 1
+            //         color: "red"
+            //         border.color: "blue"
+            //         border.width: 4
+            //         z: 100
+            //         onPathChanged:{
+            //         }
+            //     }
+            // }
+            // Repeater {
+            //     id: mazeWalls
+            //     model: h3Model
+            //
+            //     MapPolygon {
+            //         path: h3Model.mazePolygons[index].path
+            //         border.width: 3
+            //         border.color: "lime"
+            //         color: Qt.rgba(0, 1, 0, 0.3) // Полупрозрачная заливка для проверки
+            //         opacity: 1.0
+            //         z: 2
+            //         visible: true
+            //         // Важно для корректного наложения на карту
+            //         referenceSurface: QtLocation.ReferenceSurface.Globe
+            //
+            //         Component.onCompleted: {
+            //             console.log("Maze wall segment rendered:", modelData.length, "points")
+            //         }
+            //     }
+            // }
+            // Repeater {
+            //     id: mazeWalls
+            //     model: h3Model.mazePolygons
+            //
+            //     delegate: MapPolygon {
+            //         path: modelData
+            //         border.width: 3
+            //         border.color: "lime"
+            //         color: Qt.rgba(0, 1, 0, 0.3) // Полупрозрачная заливка для проверки
+            //         opacity: 1.0
+            //         z: 2
+            //         visible: true
+            //         // Важно для корректного наложения на карту
+            //         referenceSurface: QtLocation.ReferenceSurface.Globe
+            //
+            //         Component.onCompleted: {
+            //             console.log("Maze wall segment rendered:", modelData.length, "points")
+            //         }
+            //     }
+            // }
 
             MapItemView {
                 id: targetCells
@@ -713,7 +804,7 @@ ApplicationWindow {
                 visible: true
 
                 delegate: MapPolygon {
-                    id: cellLine
+                    id: cellPolygon
 
                     autoFadeIn: false
                     border.color: "black"

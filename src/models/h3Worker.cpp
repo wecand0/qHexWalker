@@ -1,15 +1,74 @@
 #include "h3Worker.h"
 
+#include <ranges>
+
 using namespace H3_VIEWER;
 using namespace std::chrono_literals;
 
+namespace {
+
+// Converts a set of H3 cells to a list of merged polygons
+std::vector<QVariantList> cellsToMergedPolygons(const std::unordered_set<H3Index> &cells) {
+    std::vector<QVariantList> result;
+
+    if (cells.empty()) {
+        return result;
+    }
+
+    // Convert set to vector for H3 API
+    std::vector<H3Index> cellsVec(cells.begin(), cells.end());
+    cellsVec.shrink_to_fit();
+    //cellsVec.erase(cellsVec.begin(), cellsVec.begin() + 1);
+
+    LinkedGeoPolygon polygon{};
+    H3Error err;
+    err = cellsToLinkedMultiPolygon(cellsVec.data(), static_cast<int>(cellsVec.size()), &polygon);
+
+    if (err != E_SUCCESS) {
+        spdlog::warn("cellsToLinkedMultiPolygon failed: {}", describeH3Error(err));
+        return result;
+    }
+
+    // Process all polygons in the linked list
+    const LinkedGeoPolygon *currentPoly = &polygon;
+    while (currentPoly != nullptr) {
+        // Process outer loop (first loop is the outer boundary)
+        if (currentPoly->first != nullptr) {
+            QVariantList polyPath;
+
+            const LinkedLatLng *currentVertex = currentPoly->first->first;
+            while (currentVertex != nullptr) {
+                const double lat = radsToDegs(currentVertex->vertex.lat);
+                const double lng = radsToDegs(currentVertex->vertex.lng);
+                polyPath.emplace_back(QVariant::fromValue(QGeoCoordinate{lat, lng, 0}));
+                currentVertex = currentVertex->next;
+            }
+
+            // Close the polygon by adding the first point at the end
+            if (!polyPath.isEmpty() && currentPoly->first->first != nullptr) {
+                const double lat = radsToDegs(currentPoly->first->first->vertex.lat);
+                const double lng = radsToDegs(currentPoly->first->first->vertex.lng);
+                polyPath.emplace_back(QVariant::fromValue(QGeoCoordinate{lat, lng, 0}));
+            }
+
+            if (!polyPath.isEmpty()) {
+                result.emplace_back(std::move(polyPath));
+            }
+        }
+
+        currentPoly = currentPoly->next;
+    }
+
+    destroyLinkedMultiPolygon(&polygon);
+
+    spdlog::info("Converted {} cells to {} polygons", cells.size(), result.size());
+    return result;
+}
+
+}  // namespace
+
 H3Worker::H3Worker(QObject *parent) : QObject(parent) {
     astar_ = new H3AStar();
-    // connect(astar_, &H3AStar::newCell, this, [this](H3Index index) {
-    //     const auto childPolygon = Helper::indexToPolygon(index);
-    //     std::this_thread::sleep_for(30ms);
-    //     emit cellComputed(getResolution(index), index, childPolygon.value(), true);
-    // });
 }
 
 H3Worker::~H3Worker() { astar_->deleteLater(); }
@@ -41,25 +100,35 @@ void H3Worker::doWork() {
             LatLng ll{.lat = degsToRads(center.latitude()), .lng = degsToRads(center.longitude())};
 
             H3Index centerCell = H3_NULL;
-            if (latLngToCell(&ll, 2, &centerCell) != E_SUCCESS) {
-                spdlog::error("Failed to convert center coordinates to H3");
-                return;
+            H3Error err = E_SUCCESS;
+            err = latLngToCell(&ll, 2, &centerCell);
+            if (err != E_SUCCESS) {
+                spdlog::warn("{} {}", "Failed to convert center coordinates to H3", describeH3Error(err));
             }
 
             spdlog::info("Generating maze at center cell with radius {}", radius);
 
             // Генерируем клеточный лабиринт (возвращает клетки-стены)
-            walls = mazeGenerator_.generateMaze(centerCell, radius);
+            try {
+                walls = mazeGenerator_.generateMaze(centerCell, radius);
+            }catch (const std::exception &e) {
+                spdlog::error("{}", e.what());
+            }
 
             spdlog::info("Cell maze generated: {} wall cells", walls.size());
             isMazeComputed = true;
             spdlog::info("Maze generation complete");
 
             int64_t ringSize = 0;
-            maxGridDiskSize(radius, &ringSize);
+            err = maxGridDiskSize(radius, &ringSize);
+            if (err != E_SUCCESS) {
+                spdlog::warn(describeH3Error(err));
+            }
             std::vector<H3Index> distances(ringSize);
-
-            gridRing(centerCell, radius, distances.data());
+            err = gridRing(centerCell, radius, distances.data());
+            if (err != E_SUCCESS) {
+                spdlog::warn(describeH3Error(err));
+            }
             distances.shrink_to_fit();
 
             const H3Index zeroCell = distances.front();
@@ -67,29 +136,35 @@ void H3Worker::doWork() {
 
             deleteStartEndEntities(zeroCell, middleCell);
 
-            for (size_t cellId = 0; cellId < distances.size(); cellId++) {
-                if (cellId == 0) {
+            //The first cell is the entrance, skip it.
+            for(auto const& cellId : distances | std::views::drop(1)) {
+                if (cellId == middleCell) {
                     continue;
                 }
-                if (distances.at(cellId) == middleCell) {
+                if (!isValidCell(cellId)) {
                     continue;
                 }
-                walls.insert(distances.at(cellId));
+                walls.insert(cellId);
             }
         }
 
-        // Визуализация: обрисовываем ВСЕ клетки лабиринта
-        // Стены - темный цвет, проходы - светлый цвет
-        for (const auto cell : walls) {
-            auto cellPolygon = Helper::indexToPolygon(cell);
-            if (!cellPolygon.has_value()) {
-                continue;
-            }
-            emit cellComputed(getResolution(cell), cell, cellPolygon.value(), true);
+        // Визуализация: объединяем все стены в полигоны и отправляем
+        auto mergedPolygons = cellsToMergedPolygons(walls);
+        if (!mergedPolygons.empty()) {
+            emit mazePolygonsComputed(mergedPolygons);
         }
 
         // Устанавливаем стены в A*
         astar_->setBlockedCells(walls);
+
+        // for (const auto index : walls) {
+        //     auto childPolygon = Helper::indexToPolygon(index);
+        //     if (!childPolygon.has_value()) {
+        //         break;
+        //     }
+        //     std::this_thread::sleep_for(1ms);
+        //     emit cellComputed(getResolution(index), index, childPolygon.value(), false);
+        // }
 
         H3Index prevIndex = req.indexes.front();
         std::vector<H3Index> path;
@@ -103,7 +178,7 @@ void H3Worker::doWork() {
                         break;
                     }
                     std::this_thread::sleep_for(1ms);
-                    emit cellComputed(getResolution(index), index, childPolygon.value(), false);
+                    emit cellComputed(getResolution(index), index, childPolygon.value(), true);
                 }
             } catch (const std::exception &e) {
                 spdlog::warn("{}", e.what());
@@ -158,13 +233,14 @@ void H3Worker::requestCell(const std::vector<H3Index> &index) {
 void H3Worker::deleteStartEndEntities(H3Index start, H3Index end) {
     // start
     int64_t maxSize = 0;
-    H3Error err = maxGridDiskSize(3, &maxSize);
+    constexpr int kRingSize = 3;
+    H3Error err = maxGridDiskSize(kRingSize, &maxSize);
     if (err != E_SUCCESS) {
         spdlog::warn(describeH3Error(err));
     }
 
     std::vector<H3Index> disk(maxSize);
-    err = gridDisk(start, 3, disk.data());
+    err = gridDisk(start, kRingSize, disk.data());
     if (err != E_SUCCESS) {
         spdlog::warn(describeH3Error(err));
     }
@@ -176,7 +252,7 @@ void H3Worker::deleteStartEndEntities(H3Index start, H3Index end) {
 
     // end
     std::vector<H3Index> disk2(maxSize);
-    err = gridDisk(end, 3, disk2.data());
+    err = gridDisk(end, kRingSize, disk2.data());
     if (err != E_SUCCESS) {
         spdlog::warn(describeH3Error(err));
     }
@@ -186,22 +262,24 @@ void H3Worker::deleteStartEndEntities(H3Index start, H3Index end) {
         }
     }
 }
-H3Index H3Worker::getMiddleOfRing(const std::vector<H3Index> &distances, H3Index zeroCell) {
+H3Index H3Worker::getMiddleOfRing(const std::vector<H3Index> &distances, const H3Index zeroCell) {
     LatLng zeroLatLng;
     cellToLatLng(zeroCell, &zeroLatLng);
     double dist = 0;
     LatLng ll;
     H3Index middleCell = H3_NULL;
-    for (size_t cellId = 0; cellId < distances.size(); cellId++) {
-        if (cellId == 0) {
+    H3Error err = E_SUCCESS;
+    for(auto const& cellId : distances | std::views::drop(1)) {
+        if (!isValidCell(cellId)) {
             continue;
         }
-        cellToLatLng(distances.at(cellId), &ll);
-
-        auto distTemp = greatCircleDistanceM(&zeroLatLng, &ll);
-        if (distTemp > dist) {
+        err = cellToLatLng(cellId, &ll);
+        if (err != E_SUCCESS) {
+            spdlog::warn(describeH3Error(err));
+        }
+        if (const auto distTemp = greatCircleDistanceM(&zeroLatLng, &ll); distTemp > dist) {
             dist = distTemp;
-            middleCell = distances.at(cellId);
+            middleCell = cellId;
         }
     }
     return middleCell;

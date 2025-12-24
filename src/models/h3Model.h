@@ -15,6 +15,7 @@ class H3Model final : public QAbstractListModel {
     Q_OBJECT
     Q_DISABLE_COPY_MOVE(H3Model)
     Q_PROPERTY(QVariantList coordinates READ coordinates NOTIFY coordinatesChanged)
+    Q_PROPERTY(QList<QVariantList> mazePolygons READ mazePolygons NOTIFY mazePolygonsChanged)
 public:
     enum Roles { ResRole = Qt::UserRole + 1, IndexRole, CellColor, PathRole };
 
@@ -30,10 +31,14 @@ public:
         return coordinates_;
     }
 
+    [[nodiscard]] QList<QVariantList> mazePolygons() const noexcept {
+        return mazePolygons_;
+    }
+
 private slots:
     void onCellsComputed(const QVariantList &list);
-    void onCellComputed(quint8 res, H3Index index, const QVariantList &polygon, bool isSearching,
-                        bool isPentagon = false);
+    void onCellComputed(quint8 res, H3Index index, const QVariantList &polygon, bool isSearching);
+    void onMazePolygonsComputed(const std::vector<QVariantList> &polygons);
 
 public:
     void Init();
@@ -47,6 +52,7 @@ signals:
     void clearingStarted();
     void clearingFinished();
     void coordinatesChanged();
+    void mazePolygonsChanged();
 
 private:
     [[nodiscard]] std::optional<H3Cell *> findCellByID(quint64 id) const;
@@ -62,6 +68,7 @@ private:
 
     QList<H3Cell *> pathCells_;
     QVariantList coordinates_;
+    QList<QVariantList> mazePolygons_;  // Список объединённых полигонов стен
 
     const uint8_t minZoom_c{3};
     const uint8_t maxZoom_c{15};

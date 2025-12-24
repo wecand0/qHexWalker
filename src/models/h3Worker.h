@@ -41,13 +41,16 @@ public slots:
 signals:
     void finished();
     // Результат пересчета: разрешение, идентификатор H3 и полигон ячейки
-    void cellComputed(quint8 res, H3Index id, const QVariantList &polygon, bool isSearching, bool isPentagon = false);
+    void cellComputed(quint8 res, H3Index id, const QVariantList &polygon, bool isSearching);
 
     void cellsComputed(const QVariantList &polygon);
 
+    // Сигнал для отправки нескольких объединённых полигонов (стены лабиринта)
+    void mazePolygonsComputed(const std::vector<QVariantList> &polygons);
+
 private:
     void deleteStartEndEntities(H3Index start, H3Index end);
-    H3Index getMiddleOfRing(const std::vector<H3Index> &distances, H3Index zeroCell);
+    static H3Index getMiddleOfRing(const std::vector<H3Index> &distances, H3Index zeroCell);
     std::unordered_set<H3Index> walls;
     bool isMazeComputed = false;
     H3AStar *astar_{};

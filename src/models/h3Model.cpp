@@ -71,6 +71,8 @@ void H3Model::Init() {
     // Получение результатов пересчета
     connect(worker_, &H3_VIEWER::H3Worker::cellComputed, this, &H3Model::onCellComputed, Qt::QueuedConnection);
     connect(worker_, &H3_VIEWER::H3Worker::cellsComputed, this, &H3Model::onCellsComputed, Qt::QueuedConnection);
+    connect(worker_, &H3_VIEWER::H3Worker::mazePolygonsComputed, this, &H3Model::onMazePolygonsComputed,
+            Qt::QueuedConnection);
     thread_->start();
 
     // auto _ = QtConcurrent::run([this] {
@@ -151,7 +153,7 @@ void H3Model::addPentagons() {
             if (!pentagonPolygon.has_value()) {
                 continue;
             }
-            onCellComputed(getResolution(pentagon), pentagon, pentagonPolygon.value(), false, true);
+            onCellComputed(getResolution(pentagon), pentagon, pentagonPolygon.value(), false);
         }
     }
 }
@@ -161,17 +163,12 @@ void H3Model::onCellsComputed(const QVariantList &list) {
     emit coordinatesChanged();
 }
 
-void H3Model::onCellComputed(const quint8 res, const H3Index index, const QVariantList &polygon, const bool isSearching,
-                             const bool isPentagon) {
+void H3Model::onCellComputed(const quint8 res, const H3Index index, const QVariantList &polygon, const bool isSearching) {
     // Не добавляем новые ячейки во время очистки
     if (isClearing_) {
         return;
     }
-    if (isPentagon) {
-        addCell(res, index, polygon, "black");
-    } else {
-        addCell(res, index, polygon, isSearching ? "gray" : getColorForResolution(res));
-    }
+    addCell(res, index, polygon, isSearching ?  getColorForResolution(res) : "gray");
 }
 
 void H3Model::requestCells(const std::vector<H3Index> &indexes) {
@@ -180,7 +177,7 @@ void H3Model::requestCells(const std::vector<H3Index> &indexes) {
     }
     // Если есть старые ячейки, очищаем их перед добавлением новой
     if (!pathCells_.empty()) {
-        // clearAllCells();
+        //clearAllCells();
 
         if (!isClearing_) {
             worker_->requestCell(indexes);
@@ -258,6 +255,44 @@ void H3Model::clearAllCells() {
     pathCells_.clear();
     endResetModel();
 
+    // Очищаем полигоны лабиринта
+    // if (!mazePolygons_.isEmpty()) {
+    //     mazePolygons_.clear();
+    //     emit mazePolygonsChanged();
+    // }
+
     isClearing_ = false;
     emit clearingFinished();
+}
+
+void H3Model::onMazePolygonsComputed(const std::vector<QVariantList> &polygons) {
+    if (isClearing_) {
+        return;
+    }
+
+    mazePolygons_.clear();
+    mazePolygons_.reserve(static_cast<qsizetype>(polygons.size()));
+
+    auto biggestI = 0;
+    auto s = 0;
+
+    for (auto i = 0; i < polygons.size(); i++) {
+        if (polygons[i].size() > s) {
+            s = polygons[i].size();
+            biggestI = i;
+            spdlog::info("Biggest polygon is {} {}", polygons.at(i).size(), i);
+        }
+    }
+    spdlog::warn(biggestI);
+    coordinates_ = polygons[biggestI];
+    emit coordinatesChanged();
+    // for (auto &polygon : polygons) {
+    //     if (polygon.size() > biggest) {
+    //         biggest = polygon.size();
+    //     }
+    //     mazePolygons_.append(polygon);
+    // }
+
+    spdlog::info("Maze polygons updated: {} polygons", mazePolygons_.size());
+    emit mazePolygonsChanged();
 }
