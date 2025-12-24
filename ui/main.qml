@@ -611,8 +611,8 @@ ApplicationWindow {
 
                 border.color: "white"
                 border.width: 1
-                color: Qt.rgba(0.64, 0.0, 0.0, 0.3)
-                opacity: 0.75
+                color: "black"
+                opacity: 0.3
                 path: h3Model ? h3Model.coordinates : []
                 autoFadeIn: false
             }

@@ -276,7 +276,7 @@ void H3Model::onMazePolygonsComputed(const std::vector<QVariantList> &polygons) 
     auto biggestI = 0;
     auto s = 0;
 
-    for (auto i = 0; i < polygons.size(); i++) {
+    for (size_t i = 0; i < polygons.size(); i++) {
         if (polygons[i].size() > s) {
             s = polygons[i].size();
             biggestI = i;

@@ -157,14 +157,14 @@ void H3Worker::doWork() {
         // Устанавливаем стены в A*
         astar_->setBlockedCells(walls);
 
-        // for (const auto index : walls) {
-        //     auto childPolygon = Helper::indexToPolygon(index);
-        //     if (!childPolygon.has_value()) {
-        //         break;
-        //     }
-        //     std::this_thread::sleep_for(1ms);
-        //     emit cellComputed(getResolution(index), index, childPolygon.value(), false);
-        // }
+        for (const auto index : walls) {
+            auto childPolygon = Helper::indexToPolygon(index);
+            if (!childPolygon.has_value()) {
+                break;
+            }
+            std::this_thread::sleep_for(1ms);
+            emit cellComputed(getResolution(index), index, childPolygon.value(), false);
+        }
 
         H3Index prevIndex = req.indexes.front();
         std::vector<H3Index> path;

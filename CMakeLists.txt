@@ -11,12 +11,12 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Ensure that we link with the threading library
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    # Все предупреждения - это ошибки
-    add_compile_options(-Wfatal-errors -Wall -Werror)
 
-    # Не больше одной ошибки за раз
-    #add_compile_options(--ferror-limit=1)
+add_compile_options(-Wfatal-errors -Wall -Werror)
+# Не больше одной ошибки за раз
+if(APPLE)
+    add_compile_options(--ferror-limit=1)
+elseif (UNIX)
     add_compile_options(-fmax-errors=1)
 endif ()
 

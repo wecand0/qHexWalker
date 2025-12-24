@@ -261,7 +261,7 @@ std::vector<H3Index> H3AStar::refineStartSegmentGradual(const H3Index originalSt
 std::vector<H3Index> H3AStar::refinePath(const std::vector<H3Index> &pathRes2, const H3Index originalStart,
                                          const H3Index originalEnd, const int startRes, const int endRes) {
     if (pathRes2.size() < 2) {
-        return pathRes2;
+        return {};
     }
 
     std::vector<H3Index> refinedPath;

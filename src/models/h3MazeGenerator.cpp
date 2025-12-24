@@ -1,9 +1,7 @@
 #include "h3MazeGenerator.h"
-#include <algorithm>
+
 #include <queue>
-#include <spdlog/spdlog.h>
-#include <stack>
-#include <unordered_map>
+#include <ranges>
 
 H3MazeGenerator::H3MazeGenerator(QObject *parent) : QObject(parent), rng_(std::random_device{}()) {
 }
@@ -72,8 +70,7 @@ std::unordered_set<H3Index, H3MazeGenerator::H3IndexHash> H3MazeGenerator::creat
         rooms.insert(cell);
 
         // Резервируем соседей на расстоянии 1 (будущие потенциальные стены)
-        auto neighbors = getNeighbors(cell);
-        for (const auto &neighbor : neighbors) {
+        for (auto neighbors = getNeighbors(cell); const auto &neighbor : neighbors) {
             occupied.insert(neighbor);
         }
         occupied.insert(cell);
@@ -89,12 +86,15 @@ std::vector<H3Index> H3MazeGenerator::getRoomNeighbors(
 
     std::vector<H3Index> roomNeighbors;
 
-    // Получаем соседей на расстоянии 2
+    // int64_t maxKRingSize = 0;
+    // maxGridDiskSize(kRingSize, &maxKRingSize) == 19,
+    // therefore, ring size is 19.
+
     std::array<H3Index, 19> ring = {};
-    if (gridDisk(room, 2, ring.data()) != E_SUCCESS) {
+    // Получаем соседей на расстоянии 2
+    if (constexpr int kRingSize = 2; E_SUCCESS != gridDisk(room, kRingSize, ring.data())) {
         return roomNeighbors;
     }
-
     for (const auto &candidate : ring) {
         if (candidate == H3_NULL || candidate == room) {
             continue;
@@ -114,15 +114,20 @@ std::vector<H3Index> H3MazeGenerator::getRoomNeighbors(
 
 // Находит стену между двумя комнатами на расстоянии 2
 std::optional<H3Index> H3MazeGenerator::findWallBetween(const H3Index room1, const H3Index room2) {
-    auto neighbors1 = getNeighbors(room1);
-    auto neighbors2 = getNeighbors(room2);
+    const auto neighbors1 = getNeighbors(room1);
+    const auto neighbors2 = getNeighbors(room2);
 
     // Ищем общего соседа - это и будет стена между комнатами
-    for (const auto &n1 : neighbors1) {
-        for (const auto &n2 : neighbors2) {
-            if (n1 == n2) {
-                return n1;
-            }
+    // for (const auto &n1 : neighbors1) {
+    //     for (const auto &n2 : neighbors2) {
+    //         if (n1 == n2) {
+    //             return n1;
+    //         }
+    //     }
+    // }
+    for (const auto& n1 : neighbors1) {
+        if (std::ranges::any_of(neighbors2, [&](const auto& n2) { return n1 == n2; })) {
+            return n1;
         }
     }
 
@@ -130,9 +135,7 @@ std::optional<H3Index> H3MazeGenerator::findWallBetween(const H3Index room1, con
 }
 
 // Генерирует лабиринт методом Randomized Prim's
-std::unordered_set<H3Index, H3MazeGenerator::H3IndexHash> H3MazeGenerator::generateMazePrim(
-    const std::unordered_set<H3Index, H3IndexHash> &rooms,
-    const std::unordered_set<H3Index, H3IndexHash> &allCells) {
+std::unordered_set<H3Index, H3MazeGenerator::H3IndexHash> H3MazeGenerator::generateMazePrim(const std::unordered_set<H3Index, H3IndexHash> &rooms) {
 
     if (rooms.empty()) {
         return {};
@@ -146,20 +149,18 @@ std::unordered_set<H3Index, H3MazeGenerator::H3IndexHash> H3MazeGenerator::gener
     std::vector<std::pair<H3Index, H3Index>> wallList;
 
     // Выбираем случайную стартовую комнату
-    auto roomsVec = std::vector<H3Index>(rooms.begin(), rooms.end());
+    const auto roomsVec = std::vector(rooms.begin(), rooms.end());
     std::uniform_int_distribution<size_t> startDist(0, roomsVec.size() - 1);
-    H3Index startRoom = roomsVec[startDist(rng_)];
+    const H3Index startRoom = roomsVec[startDist(rng_)];
 
     // Отмечаем стартовую комнату как посещенную и добавляем в проходы
     visitedRooms.insert(startRoom);
     passages.insert(startRoom);
 
     // Добавляем все стены стартовой комнаты
-    auto neighborRooms = getRoomNeighbors(startRoom, rooms);
-    for (const auto &neighborRoom : neighborRooms) {
+    for (const auto neighborRooms = getRoomNeighbors(startRoom, rooms); const auto &neighborRoom : neighborRooms) {
         if (!visitedRooms.contains(neighborRoom)) {
-            auto wall = findWallBetween(startRoom, neighborRoom);
-            if (wall.has_value()) {
+            if (auto wall = findWallBetween(startRoom, neighborRoom); wall.has_value()) {
                 wallList.emplace_back(wall.value(), neighborRoom);
             }
         }
@@ -169,7 +170,7 @@ std::unordered_set<H3Index, H3MazeGenerator::H3IndexHash> H3MazeGenerator::gener
     while (!wallList.empty()) {
         // Выбираем случайную стену из списка
         std::uniform_int_distribution<size_t> wallDist(0, wallList.size() - 1);
-        size_t wallIdx = wallDist(rng_);
+        const size_t wallIdx = wallDist(rng_);
         auto [wall, nextRoom] = wallList[wallIdx];
 
         // Удаляем стену из списка
@@ -186,11 +187,10 @@ std::unordered_set<H3Index, H3MazeGenerator::H3IndexHash> H3MazeGenerator::gener
         visitedRooms.insert(nextRoom);
 
         // Добавляем новые стены из новой комнаты
-        auto newNeighborRooms = getRoomNeighbors(nextRoom, rooms);
-        for (const auto &newNeighborRoom : newNeighborRooms) {
+        for (auto newNeighborRooms = getRoomNeighbors(nextRoom, rooms);
+             const auto &newNeighborRoom : newNeighborRooms) {
             if (!visitedRooms.contains(newNeighborRoom)) {
-                auto newWall = findWallBetween(nextRoom, newNeighborRoom);
-                if (newWall.has_value()) {
+                if (auto newWall = findWallBetween(nextRoom, newNeighborRoom); newWall.has_value()) {
                     wallList.emplace_back(newWall.value(), newNeighborRoom);
                 }
             }
@@ -220,8 +220,7 @@ H3Index H3MazeGenerator::findFarthestRoom(
         H3Index current = queue.front();
         queue.pop();
 
-        auto neighbors = getNeighbors(current);
-        for (const auto &neighbor : neighbors) {
+        for (auto neighbors = getNeighbors(current); const auto &neighbor : neighbors) {
             if (passages.contains(neighbor) && !distances.contains(neighbor)) {
                 distances[neighbor] = distances[current] + 1;
                 queue.push(neighbor);
@@ -239,7 +238,7 @@ H3Index H3MazeGenerator::findFarthestRoom(
 }
 
 // Проверяет, находится ли ячейка на границе области
-bool H3MazeGenerator::isOnBorder(const H3Index cell, const H3Index center, int radius) {
+bool H3MazeGenerator::isOnBorder(const H3Index cell, const H3Index center, const int radius) {
     int64_t distance = 0;
     if (gridDistance(center, cell, &distance) != E_SUCCESS) {
         return false;
@@ -254,7 +253,7 @@ H3MazeGenerator::MazeResult H3MazeGenerator::generateMazeWithEntrances(const H3I
     spdlog::info("Generating H3 maze with entrances, center cell, radius={}", radius);
 
     // Получаем все соты в радиусе
-    auto allCells = getCellsInRadius(centerCell, radius);
+    const auto allCells = getCellsInRadius(centerCell, radius);
     if (allCells.empty()) {
         spdlog::error("No cells in radius");
         return {std::unordered_set<H3Index>(), H3_NULL, H3_NULL};
@@ -263,7 +262,7 @@ H3MazeGenerator::MazeResult H3MazeGenerator::generateMazeWithEntrances(const H3I
     spdlog::info("Total cells in area: {}", allCells.size());
 
     // Шаг 1: Создаем сетку комнат с интервалом 2
-    auto rooms = createRoomGrid(allCells);
+    const auto rooms = createRoomGrid(allCells);
     spdlog::info("Created {} rooms for maze", rooms.size());
 
     if (rooms.empty()) {
@@ -271,7 +270,7 @@ H3MazeGenerator::MazeResult H3MazeGenerator::generateMazeWithEntrances(const H3I
     }
 
     // Шаг 2: Генерируем лабиринт методом Prim's
-    auto passages = generateMazePrim(rooms, allCells);
+    const auto passages = generateMazePrim(rooms);
     spdlog::info("Generated {} passages", passages.size());
 
     // Шаг 3: Находим вход (случайная комната на границе)
@@ -301,7 +300,7 @@ H3MazeGenerator::MazeResult H3MazeGenerator::generateMazeWithEntrances(const H3I
         }
     }
 
-    double wallPercent = (walls.size() * 100.0) / allCells.size();
+    double wallPercent = walls.size() * 100.0 / allCells.size();
     spdlog::info("Maze generated: {} walls ({:.1f}%), {} passages ({:.1f}%)",
                  walls.size(), wallPercent, passages.size(), 100.0 - wallPercent);
     spdlog::info("Entrance: {}, Exit: {}", entrance, exit);
@@ -311,7 +310,7 @@ H3MazeGenerator::MazeResult H3MazeGenerator::generateMazeWithEntrances(const H3I
 }
 
 // Обратная совместимость - старый метод без входа/выхода
-std::unordered_set<H3Index> H3MazeGenerator::generateMaze(const H3Index centerCell, int radius) {
+std::unordered_set<H3Index> H3MazeGenerator::generateMaze(const H3Index centerCell, const int radius) {
     auto result = generateMazeWithEntrances(centerCell, radius);
     return result.walls;
 }
