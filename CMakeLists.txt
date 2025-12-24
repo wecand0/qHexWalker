@@ -25,8 +25,8 @@ message(STATUS "System           : ${CMAKE_SYSTEM}")
 message(STATUS "Версия ПО        : ${APP_VERSION}")
 
 #-DCMAKE_TOOLCHAIN_FILE=/Users/user/.vcpkg-clion/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_PREFIX_PATH="/Users/user/Qt/6.10.1/macos"  -DCMAKE_C_COMPILER_LAUNCHER="ccache" -DCMAKE_CXX_COMPILER_LAUNCHER="ccache"
-option(BUILD_TESTS "ENABLE TESTING" ON)
-option(BENCHMARK_ENABLE "ENABLE BENCHMARK" ON)
+option(BUILD_TESTS "ENABLE TESTING" OFF)
+option(BENCHMARK_ENABLE "ENABLE BENCHMARK" OFF)
 option(DEBUG "ENABLE DEBUG" OFF)
 option(ENABLE_NATIVE_OPTIMIZATIONS "Enable -march=native/-mtune=native (non-portable across CPUs)" ON)
 

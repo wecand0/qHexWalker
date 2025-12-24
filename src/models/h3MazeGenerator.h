@@ -3,6 +3,7 @@
 #include <QObject>
 #include <h3/h3api.h>
 #include <random>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -17,8 +18,17 @@ public:
         std::size_t operator()(const H3Index &index) const { return std::hash<uint64_t>()(index); }
     };
 
+    struct MazeResult {
+        std::unordered_set<H3Index> walls;
+        H3Index entrance;
+        H3Index exit;
+    };
+
     // Главный метод генерации лабиринта
     std::unordered_set<H3Index> generateMaze(const H3Index centerCell, int radius);
+
+    // Новый метод с информацией о входе и выходе
+    MazeResult generateMazeWithEntrances(const H3Index centerCell, int radius);
 
 signals:
     void generationProgress(int percent);
@@ -32,4 +42,32 @@ private:
 
     // Получает все соты в радиусе
     std::unordered_set<H3Index, H3IndexHash> getCellsInRadius(const H3Index center, int radius);
+
+    // Создает сетку комнат с минимальным интервалом 2
+    std::unordered_set<H3Index, H3IndexHash> createRoomGrid(
+        const std::unordered_set<H3Index, H3IndexHash> &allCells);
+
+    // Находит стену между двумя комнатами (на расстоянии 2)
+    std::optional<H3Index> findWallBetween(const H3Index room1, const H3Index room2);
+
+    // Генерирует лабиринт методом Randomized Prim's
+    std::unordered_set<H3Index, H3IndexHash> generateMazePrim(
+        const std::unordered_set<H3Index, H3IndexHash> &rooms,
+        const std::unordered_set<H3Index, H3IndexHash> &allCells);
+
+    // Находит комнаты-соседи на расстоянии 2
+    std::vector<H3Index> getRoomNeighbors(
+        const H3Index room,
+        const std::unordered_set<H3Index, H3IndexHash> &rooms);
+
+    // Находит самую удаленную комнату от стартовой через BFS
+    H3Index findFarthestRoom(
+        const H3Index start,
+        const std::unordered_set<H3Index, H3IndexHash> &passages);
+
+    // Проверяет, находится ли ячейка на границе области
+    bool isOnBorder(
+        const H3Index cell,
+        const H3Index center,
+        int radius);
 };
