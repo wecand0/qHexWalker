@@ -31,9 +31,7 @@ public:
         return coordinates_;
     }
 
-    [[nodiscard]] QList<QVariantList> mazePolygons() const noexcept {
-        return mazePolygons_;
-    }
+    [[nodiscard]] QList<QVariantList> mazePolygons() const noexcept { return mazePolygons_; }
 
 private slots:
     void onCellsComputed(const QVariantList &list);

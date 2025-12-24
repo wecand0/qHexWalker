@@ -163,12 +163,13 @@ void H3Model::onCellsComputed(const QVariantList &list) {
     emit coordinatesChanged();
 }
 
-void H3Model::onCellComputed(const quint8 res, const H3Index index, const QVariantList &polygon, const bool isSearching) {
+void H3Model::onCellComputed(const quint8 res, const H3Index index, const QVariantList &polygon,
+                             const bool isSearching) {
     // Не добавляем новые ячейки во время очистки
     if (isClearing_) {
         return;
     }
-    addCell(res, index, polygon, isSearching ?  getColorForResolution(res) : "gray");
+    addCell(res, index, polygon, isSearching ? getColorForResolution(res) : "gray");
 }
 
 void H3Model::requestCells(const std::vector<H3Index> &indexes) {
@@ -177,7 +178,7 @@ void H3Model::requestCells(const std::vector<H3Index> &indexes) {
     }
     // Если есть старые ячейки, очищаем их перед добавлением новой
     if (!pathCells_.empty()) {
-        //clearAllCells();
+        // clearAllCells();
 
         if (!isClearing_) {
             worker_->requestCell(indexes);

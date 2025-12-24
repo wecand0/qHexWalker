@@ -3,25 +3,26 @@
 #include <queue>
 #include <ranges>
 
-H3MazeGenerator::H3MazeGenerator(QObject *parent) : QObject(parent), rng_(std::random_device{}()) {
-}
+H3MazeGenerator::H3MazeGenerator(QObject *parent) : QObject(parent), rng_(std::random_device{}()) {}
 
-std::vector<H3Index> H3MazeGenerator::getNeighbors(const H3Index cell) {
-    std::array<H3Index, 7> ring = {};
+std::array<H3Index, 6> H3MazeGenerator::getNeighbors(const H3Index cell) {
+    std::array<H3Index, 7> ring{};  // размер 7: центр + 6 соседей
+
     if (gridDisk(cell, 1, ring.data()) != E_SUCCESS) {
         return {};
     }
 
-    std::vector<H3Index> neighbors;
-    neighbors.reserve(6);
+    neighbors_ = {};
 
-    for (const auto &neighbor : ring) {
-        if (neighbor != H3_NULL && neighbor != cell) {
-            neighbors.emplace_back(neighbor);
+    int idx = 0;
+    for (const auto& neighbor : ring) {
+        if (neighbor != H3_NULL && neighbor != cell && !isPentagon(neighbor)) {
+            neighbors_[idx++] = neighbor;
         }
     }
 
-    return neighbors;
+    // Если соседей меньше 6 (возле пентагона), остальные останутся 0
+    return neighbors_;
 }
 
 std::unordered_set<H3Index, H3MazeGenerator::H3IndexHash> H3MazeGenerator::getCellsInRadius(const H3Index center,
@@ -55,8 +56,8 @@ std::unordered_set<H3Index, H3MazeGenerator::H3IndexHash> H3MazeGenerator::getCe
 }
 
 // Создает сетку комнат с минимальным интервалом 2
-std::unordered_set<H3Index, H3MazeGenerator::H3IndexHash> H3MazeGenerator::createRoomGrid(
-    const std::unordered_set<H3Index, H3IndexHash> &allCells) {
+std::unordered_set<H3Index, H3MazeGenerator::H3IndexHash>
+H3MazeGenerator::createRoomGrid(const std::unordered_set<H3Index, H3IndexHash> &allCells) {
 
     std::unordered_set<H3Index, H3IndexHash> rooms;
     std::unordered_set<H3Index, H3IndexHash> occupied;
@@ -80,9 +81,8 @@ std::unordered_set<H3Index, H3MazeGenerator::H3IndexHash> H3MazeGenerator::creat
 }
 
 // Находит комнаты-соседи на расстоянии 2
-std::vector<H3Index> H3MazeGenerator::getRoomNeighbors(
-    const H3Index room,
-    const std::unordered_set<H3Index, H3IndexHash> &rooms) {
+std::vector<H3Index> H3MazeGenerator::getRoomNeighbors(const H3Index room,
+                                                       const std::unordered_set<H3Index, H3IndexHash> &rooms) {
 
     std::vector<H3Index> roomNeighbors;
 
@@ -125,8 +125,8 @@ std::optional<H3Index> H3MazeGenerator::findWallBetween(const H3Index room1, con
     //         }
     //     }
     // }
-    for (const auto& n1 : neighbors1) {
-        if (std::ranges::any_of(neighbors2, [&](const auto& n2) { return n1 == n2; })) {
+    for (const auto &n1 : neighbors1) {
+        if (std::ranges::any_of(neighbors2, [&](const auto &n2) { return n1 == n2; })) {
             return n1;
         }
     }
@@ -135,7 +135,8 @@ std::optional<H3Index> H3MazeGenerator::findWallBetween(const H3Index room1, con
 }
 
 // Генерирует лабиринт методом Randomized Prim's
-std::unordered_set<H3Index, H3MazeGenerator::H3IndexHash> H3MazeGenerator::generateMazePrim(const std::unordered_set<H3Index, H3IndexHash> &rooms) {
+std::unordered_set<H3Index, H3MazeGenerator::H3IndexHash>
+H3MazeGenerator::generateMazePrim(const std::unordered_set<H3Index, H3IndexHash> &rooms) {
 
     if (rooms.empty()) {
         return {};
@@ -203,9 +204,8 @@ std::unordered_set<H3Index, H3MazeGenerator::H3IndexHash> H3MazeGenerator::gener
 }
 
 // Находит самую удаленную комнату от стартовой через BFS
-H3Index H3MazeGenerator::findFarthestRoom(
-    const H3Index start,
-    const std::unordered_set<H3Index, H3IndexHash> &passages) {
+H3Index H3MazeGenerator::findFarthestRoom(const H3Index start,
+                                          const std::unordered_set<H3Index, H3IndexHash> &passages) {
 
     std::unordered_map<H3Index, int> distances;
     std::queue<H3Index> queue;
@@ -301,8 +301,8 @@ H3MazeGenerator::MazeResult H3MazeGenerator::generateMazeWithEntrances(const H3I
     }
 
     double wallPercent = walls.size() * 100.0 / allCells.size();
-    spdlog::info("Maze generated: {} walls ({:.1f}%), {} passages ({:.1f}%)",
-                 walls.size(), wallPercent, passages.size(), 100.0 - wallPercent);
+    spdlog::info("Maze generated: {} walls ({:.1f}%), {} passages ({:.1f}%)", walls.size(), wallPercent,
+                 passages.size(), 100.0 - wallPercent);
     spdlog::info("Entrance: {}, Exit: {}", entrance, exit);
 
     emit mazeGenerated(walls);

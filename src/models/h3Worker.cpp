@@ -18,7 +18,7 @@ std::vector<QVariantList> cellsToMergedPolygons(const std::unordered_set<H3Index
     // Convert set to vector for H3 API
     std::vector<H3Index> cellsVec(cells.begin(), cells.end());
     cellsVec.shrink_to_fit();
-    //cellsVec.erase(cellsVec.begin(), cellsVec.begin() + 1);
+    // cellsVec.erase(cellsVec.begin(), cellsVec.begin() + 1);
 
     LinkedGeoPolygon polygon{};
     H3Error err;
@@ -67,9 +67,7 @@ std::vector<QVariantList> cellsToMergedPolygons(const std::unordered_set<H3Index
 
 }  // namespace
 
-H3Worker::H3Worker(QObject *parent) : QObject(parent) {
-    astar_ = new H3AStar();
-}
+H3Worker::H3Worker(QObject *parent) : QObject(parent) { astar_ = new H3AStar(); }
 
 H3Worker::~H3Worker() { astar_->deleteLater(); }
 
@@ -111,7 +109,7 @@ void H3Worker::doWork() {
             // Генерируем клеточный лабиринт (возвращает клетки-стены)
             try {
                 walls = mazeGenerator_.generateMaze(centerCell, radius);
-            }catch (const std::exception &e) {
+            } catch (const std::exception &e) {
                 spdlog::error("{}", e.what());
             }
 
@@ -136,8 +134,8 @@ void H3Worker::doWork() {
 
             deleteStartEndEntities(zeroCell, middleCell);
 
-            //The first cell is the entrance, skip it.
-            for(auto const& cellId : distances | std::views::drop(1)) {
+            // The first cell is the entrance, skip it.
+            for (auto const &cellId : distances | std::views::drop(1)) {
                 if (cellId == middleCell) {
                     continue;
                 }
@@ -269,7 +267,7 @@ H3Index H3Worker::getMiddleOfRing(const std::vector<H3Index> &distances, const H
     LatLng ll;
     H3Index middleCell = H3_NULL;
     H3Error err = E_SUCCESS;
-    for(auto const& cellId : distances | std::views::drop(1)) {
+    for (auto const &cellId : distances | std::views::drop(1)) {
         if (!isValidCell(cellId)) {
             continue;
         }
