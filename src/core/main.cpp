@@ -17,6 +17,10 @@ int main(int argc, char *argv[]) {
     signal(SIGTERM, &SigintCallbackHandler);
     signal(SIGABRT, &SigintCallbackHandler);
 
+    qputenv("QSG_RENDER_LOOP", "threaded");  // basic threaded
+    // Включение оптимизаций QML
+    qputenv("QML_DISK_CACHE", "aot");
+
 #ifdef __APPLE__
     QQuickWindow::setGraphicsApi(QSGRendererInterface::MetalRhi);
 #elif __linux__ or _WIN64

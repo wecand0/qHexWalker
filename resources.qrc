@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/QHexWalker">
         <file>ui/main.qml</file>
+        <file>data/style.json</file>
     </qresource>
 </RCC>

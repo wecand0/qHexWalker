@@ -7,6 +7,8 @@
 
 #include "mapProvider.h"
 
+#include <qdir.h>
+
 EntryPoint::EntryPoint(const std::string &loggerName, QObject *parent) : QObject(parent) {
     InitLogger(loggerName);
 
@@ -41,13 +43,19 @@ void EntryPoint::InitDataModels() {
     targetsModel_ = new H3TargetsModel(this);
     engine_->rootContext()->setContextProperty("targetsModel", targetsModel_);
 
-    connect(targetsModel_, &H3TargetsModel::onCompute, h3Model_, &H3Model::requestCells);
+    connect(targetsModel_, &H3TargetsModel::onCompute, h3Model_, &H3Model::requestCells, Qt::QueuedConnection);
+    connect(targetsModel_, &H3TargetsModel::onRemoveCell, h3Model_, &H3Model::requestCells, Qt::QueuedConnection);
 }
 void EntryPoint::InitMap() {
     mapProvider_ = new MapProvider(this);
     engine_->rootContext()->setContextProperty("mapProvider", mapProvider_);
     logger_->GetLoggerInstance()->info("Map url -> {}", pathUrl_c.toStdString());
+#ifndef __APPLE__
+    const QString pathToMap = "mbtiles://" + QDir::currentPath() + QDir::separator() + "maplibre.mbtiles";
+    mapProvider_->exchangeUrlOffline(pathToMap);
+#else
     mapProvider_->setUrl(pathUrl_c);
+#endif
 }
 
 void EntryPoint::InitEngine() {

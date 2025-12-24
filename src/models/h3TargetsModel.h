@@ -30,15 +30,13 @@ public slots:
     Q_INVOKABLE void clearAllCells();
 
 signals:
+    void onRemoveCell(const std::vector<H3Index> &indexes);
     void onCompute(const std::vector<H3Index> &indexes);
     void clearingStarted();
     void clearingFinished();
 
 private:
-    // [[nodiscard]] std::optional<H3Data *> findCellByID(quint64 id) const;
-    // [[nodiscard]] std::optional<H3Data *> findCellByRes(quint8 res) const;
     [[nodiscard]] bool isCoordinateTargetValid(quint8 zoom, const QGeoCoordinate &coordinate) const;
-    //[[nodiscard]] QString getColorForResolution(quint8 resolution) const;
 
     QList<H3Target *> cells_;
 

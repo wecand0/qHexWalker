@@ -102,9 +102,9 @@ ApplicationWindow {
         Rectangle {
             id: paths
 
-            implicitWidth: Screen.width * 0.2
-            SplitView.maximumWidth:  Screen.width * 0.3
-            SplitView.minimumWidth:  Screen.width * 0.2
+            implicitWidth: Screen.width * 0.15
+            SplitView.maximumWidth:  Screen.width * 0.2
+            SplitView.minimumWidth:  Screen.width * 0.1
             color: "#1E252B"
             opacity: 0.85
             radius: 16
@@ -131,6 +131,7 @@ ApplicationWindow {
                 ScrollView {
                     Layout.fillHeight: true
                     Layout.fillWidth: true
+                    ScrollBar.vertical.policy: ScrollBar.AlwaysOff
                     //clip: true
 
                     ListView {
@@ -138,6 +139,32 @@ ApplicationWindow {
 
                         model: targetsModel
                         spacing: 4
+
+                        addDisplaced: Transition {
+                            NumberAnimation {properties: "x, y"; duration: 300}
+                        }
+                        moveDisplaced: Transition {
+                            NumberAnimation { properties: "x, y"; duration: 300 }
+                        }
+                        remove: Transition {
+                            NumberAnimation { properties: "x, y"; duration: 300 }
+                            NumberAnimation { properties: "opacity"; duration: 300 }
+                        }
+
+                        removeDisplaced: Transition {
+                            NumberAnimation { properties: "x, y"; duration: 300 }
+                        }
+
+                        displaced: Transition {
+                            NumberAnimation {properties: "x, y"; duration: 300}
+                        }
+
+                        // Анимации перемещения (красиво)
+                        move: Transition {
+                            NumberAnimation {
+                                properties: "x,y"; duration: 300
+                            }
+                        }
 
                         delegate: Rectangle {
                             id: listItem
@@ -148,8 +175,12 @@ ApplicationWindow {
                             radius: 4
                             width: coordinateListView.width
 
-                            Behavior on color { ColorAnimation { duration: 150 } }
 
+                            Behavior on color {
+                                ColorAnimation {
+                                    duration: 150
+                                }
+                            }
                             MouseArea {
                                 id: itemMouseArea
                                 anchors.fill: parent
@@ -454,9 +485,6 @@ ApplicationWindow {
                 hoverEnabled: true
 
                 onClicked: event => {
-                    // if (event.button === Qt.LeftButton) {
-                    //     h3Model.requestCell(map.zoomLevel, map.toCoordinate(Qt.point(mouseX, mouseY)));
-                    // }
                     if (event.button === Qt.LeftButton) {
                         currentCoordinate = map.toCoordinate(Qt.point(event.x, event.y));
                     }
@@ -481,6 +509,15 @@ ApplicationWindow {
                     let dx = postZoomPoint.x - preZoomPoint.x;
                     let dy = postZoomPoint.y - preZoomPoint.y;
                     map.center = map.toCoordinate(Qt.point(map.width / 2 + dx, map.height / 2 + dy));
+                }
+            }
+            Shortcut {
+                sequence: "z"
+                onActivated: {
+                    centerAnimation.to = mapMouseArea.currentCoordinate
+                    zoomAnimation.to = 3
+                    centerAnimation.start()
+                    zoomAnimation.start()
                 }
             }
             Shortcut {
@@ -568,6 +605,31 @@ ApplicationWindow {
                     text: " Press 'r' to clear all cells "
                 }
             }
+            // Отображение объединённых полигонов стен лабиринта
+            Instantiator {
+                id: mazePolygonsInstantiator
+                model: h3Model.mazePolygons
+                active: true
+
+                delegate: MapPolygon {
+                    id: mazePolyDelegate
+                    path: modelData
+                    opacity: 0.3
+                    color: "black"
+                    border.color: "red"
+                    border.width: 2
+                    z: 1
+
+                    Component.onCompleted: {
+                        map.addMapItem(mazePolyDelegate)
+                    }
+                    Component.onDestruction: {
+                        map.removeMapItem(mazePolyDelegate)
+                    }
+                }
+            }
+
+
             MapItemView {
                 id: targetCells
                 model: targetsModel ? targetsModel : null
@@ -587,6 +649,25 @@ ApplicationWindow {
                             referenceSurface: QtLocation.ReferenceSurface.Globe
                             visible: true
                             z: model ? model.res : 2
+                            MouseArea {
+                                id: mouseID
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                cursorShape: Qt.CrossCursor
+
+                                onClicked: event => {
+                                    if (event.button === Qt.LeftButton) {
+                                        centerAnimation.to = model.coordinate
+                                        zoomAnimation.to = model.zoom
+                                        centerAnimation.start()
+                                        zoomAnimation.start()
+                                    }
+                                    if (event.button === Qt.RightButton) {
+                                        targetsModel.remove(index)
+                                    }
+                                }
+                            }
                         }
 
                         MapQuickItem {
@@ -615,6 +696,25 @@ ApplicationWindow {
                                     font: cellText.font
                                     text: cellText.text
                                 }
+                                MouseArea {
+                                    id: mouseRID
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                    cursorShape: Qt.CrossCursor
+
+                                    onClicked: event => {
+                                        if (event.button === Qt.LeftButton) {
+                                            centerAnimation.to = model.coordinate
+                                            zoomAnimation.to = model.zoom
+                                            centerAnimation.start()
+                                            zoomAnimation.start()
+                                        }
+                                        if (event.button === Qt.RightButton) {
+                                            targetsModel.remove(index)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -627,7 +727,7 @@ ApplicationWindow {
                 visible: true
 
                 delegate: MapPolygon {
-                    id: cellLine
+                    id: cellPolygon
 
                     autoFadeIn: false
                     border.color: "black"

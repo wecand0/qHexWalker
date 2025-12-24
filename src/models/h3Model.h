@@ -14,6 +14,8 @@ class H3Worker;
 class H3Model final : public QAbstractListModel {
     Q_OBJECT
     Q_DISABLE_COPY_MOVE(H3Model)
+    Q_PROPERTY(QVariantList coordinates READ coordinates NOTIFY coordinatesChanged)
+    Q_PROPERTY(QList<QVariantList> mazePolygons READ mazePolygons NOTIFY mazePolygonsChanged)
 public:
     enum Roles { ResRole = Qt::UserRole + 1, IndexRole, CellColor, PathRole };
 
@@ -24,8 +26,17 @@ public:
     [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
     [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
 
+    [[nodiscard]]
+    QVariantList coordinates() const noexcept {
+        return coordinates_;
+    }
+
+    [[nodiscard]] QList<QVariantList> mazePolygons() const noexcept { return mazePolygons_; }
+
 private slots:
+    void onCellsComputed(const QVariantList &list);
     void onCellComputed(quint8 res, H3Index index, const QVariantList &polygon, bool isSearching);
+    void onMazePolygonsComputed(const std::vector<QVariantList> &polygons);
 
 public:
     void Init();
@@ -38,6 +49,8 @@ public slots:
 signals:
     void clearingStarted();
     void clearingFinished();
+    void coordinatesChanged();
+    void mazePolygonsChanged();
 
 private:
     [[nodiscard]] std::optional<H3Cell *> findCellByID(quint64 id) const;
@@ -45,10 +58,15 @@ private:
     [[nodiscard]] bool isCoordinateTargetValid(quint8 zoom, const QGeoCoordinate &coordinate) const;
     [[nodiscard]] QString getColorForResolution(quint8 resolution) const;
 
+    void addCell(quint8 res, H3Index index, const QVariantList &polygon, const QColor &color);
+    void addPentagons();
+
     H3_VIEWER::H3Worker *worker_{};
     QThread *thread_{};
 
     QList<H3Cell *> pathCells_;
+    QVariantList coordinates_;
+    QList<QVariantList> mazePolygons_;  // Список объединённых полигонов стен
 
     const uint8_t minZoom_c{3};
     const uint8_t maxZoom_c{15};

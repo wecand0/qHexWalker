@@ -5,8 +5,12 @@
 - H3 берётся из vcpkg (см. vcpkg.json)
 - Для карт используется библиотека MapLibre Native Qt: https://github.com/maplibre/maplibre-native-qt
 
-Скриншот:
+Видео A*:
 https://github.com/user-attachments/assets/fddeafd0-e530-4c4f-9296-0b9d5bb9605f
+
+Скриншот лабиринта:
+<img width="1055" height="1136" alt="mazze" src="https://github.com/user-attachments/assets/18321b05-142d-4e33-87b3-a15d020f7126" />
+
 
 
 ## Требования

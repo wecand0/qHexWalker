@@ -11,12 +11,12 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Ensure that we link with the threading library
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    # Все предупреждения - это ошибки
-    add_compile_options(-Wfatal-errors -Wall -Werror)
 
-    # Не больше одной ошибки за раз
-    #add_compile_options(--ferror-limit=1)
+add_compile_options(-Wfatal-errors -Wall -Werror)
+# Не больше одной ошибки за раз
+if(APPLE)
+    add_compile_options(--ferror-limit=1)
+elseif (UNIX)
     add_compile_options(-fmax-errors=1)
 endif ()
 
@@ -25,8 +25,8 @@ message(STATUS "System           : ${CMAKE_SYSTEM}")
 message(STATUS "Версия ПО        : ${APP_VERSION}")
 
 #-DCMAKE_TOOLCHAIN_FILE=/Users/user/.vcpkg-clion/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_PREFIX_PATH="/Users/user/Qt/6.10.1/macos"  -DCMAKE_C_COMPILER_LAUNCHER="ccache" -DCMAKE_CXX_COMPILER_LAUNCHER="ccache"
-option(BUILD_TESTS "ENABLE TESTING" ON)
-option(BENCHMARK_ENABLE "ENABLE BENCHMARK" ON)
+option(BUILD_TESTS "ENABLE TESTING" OFF)
+option(BENCHMARK_ENABLE "ENABLE BENCHMARK" OFF)
 option(DEBUG "ENABLE DEBUG" OFF)
 option(ENABLE_NATIVE_OPTIMIZATIONS "Enable -march=native/-mtune=native (non-portable across CPUs)" ON)
 
@@ -129,6 +129,9 @@ qt_add_qml_module(
         RESOURCE_PREFIX "/"
         QML_FILES
             ui/main.qml
+
+        RESOURCES
+            data/style.json
 )
 
 set_target_properties(
@@ -156,8 +159,8 @@ function(copy_recursive SOURCE_PATH DESTINATION_PATH REGEX)
         configure_file(${file} "${DESTINATION_PATH}/${RELATIVE_FILE_PATH}" COPYONLY)
     endforeach ()
 endfunction()
-
-copy_recursive(${CMAKE_SOURCE_DIR}/data/tiles/ ${CMAKE_CURRENT_BINARY_DIR}/tiles *)
+#
+copy_recursive(${CMAKE_SOURCE_DIR}/data/ ${CMAKE_CURRENT_BINARY_DIR} *)
 
 ########################################
 #

@@ -62,6 +62,7 @@ QHash<int, QByteArray> H3TargetsModel::roleNames() const {
 
 void H3TargetsModel::compute() {
     std::vector<H3Index> indexes;
+    indexes.reserve(cells_.size());
     for (const auto &cell : cells_) {
         indexes.emplace_back(cell->index());
     }
@@ -86,8 +87,8 @@ void H3TargetsModel::move(int from, int to) {
     endMoveRows();
 
     // Обновляем order
-    int start = std::min(from, to);
-    int end = std::max(from, to);
+    const int start = std::min(from, to);
+    const int end = std::max(from, to);
     for (int i = start; i <= end; ++i) {
         cells_[i]->setOrder(static_cast<quint16>(i + 1));
     }
@@ -107,7 +108,7 @@ qsizetype H3TargetsModel::remove(const int row) {
 
     // Правильно: удаляем одну строку
     beginRemoveRows(QModelIndex(), row, row);
-    H3Target *cell = cells_.takeAt(row);
+    const H3Target *cell = cells_.takeAt(row);
     delete cell;
     endRemoveRows();
 
@@ -126,6 +127,13 @@ qsizetype H3TargetsModel::remove(const int row) {
 
     isClearing_ = false;
     emit clearingFinished();
+
+    std::vector<H3Index> indexes;
+    indexes.reserve(cells_.size());
+    for (const auto &c : cells_) {
+        indexes.emplace_back(c->index());
+    }
+    emit onRemoveCell(indexes);
 
     return cells_.size();
 }
