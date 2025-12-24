@@ -15,7 +15,7 @@ set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 add_compile_options(-Wfatal-errors -Wall -Werror)
 # Не больше одной ошибки за раз
 if(APPLE)
-    add_compile_options(--ferror-limit=1)
+    #add_compile_options(--ferror-limit=1)
 elseif (UNIX)
     add_compile_options(-fmax-errors=1)
 endif ()

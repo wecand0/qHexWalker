@@ -9,6 +9,7 @@ H3TargetsModel::H3TargetsModel(QObject *parent) : QAbstractListModel(parent) {
     };
     for (auto zoom = minZoom_c; zoom < maxZoom_c; zoom++) {
         zoomToRes_.emplace(zoom, std::floor(zoomToResolution(zoom)));
+        SPDLOG_INFO("{} {}", zoom, std::floor(zoomToResolution(zoom)));
     }
 }
 
@@ -148,6 +149,9 @@ void H3TargetsModel::requestCell(const quint8 mapZoom, const QGeoCoordinate &coo
     uint8_t res = 0;
     try {
         res = zoomToRes_.at(mapZoom);
+        if (res <= 3) {
+            res = 3;
+        }
     } catch (const std::out_of_range &err) {
         spdlog::error("Выбран недопустимый зум под разрешение {}", err.what());
         return;

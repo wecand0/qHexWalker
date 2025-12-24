@@ -18,7 +18,7 @@ signals:
     void newCell(H3Index h3Index);
 
 private:
-    static constexpr uint16_t MAX_CELLS_RES_2{5'882};
+    static constexpr uint16_t MAX_CELLS_RES_2{41'162};
     static constexpr int MAX_NEIGHBORS{6};
 
     struct Node {
@@ -35,21 +35,21 @@ private:
     // Blocked cells (obstacles)
     std::unordered_set<H3Index> blockedCells{};
 
-    std::vector<H3Index> findPathAtResolution2(H3Index start, H3Index end, const LatLng &endCoord);
+    std::vector<H3Index> findPathAtResolution3(H3Index start, H3Index end, const LatLng &endCoord);
     std::vector<H3Index> refineEndSegmentGradual(H3Index prevInPath, H3Index parentEnd, H3Index originalEnd,
                                                  int endRes);
     std::vector<H3Index> refineStartSegmentGradual(H3Index originalStart, H3Index nextInPath, int startRes);
-    std::vector<H3Index> refinePath(const std::vector<H3Index> &pathRes2, H3Index originalStart, H3Index originalEnd,
+    std::vector<H3Index> refinePath(const std::vector<H3Index> &pathRes3, H3Index originalStart, H3Index originalEnd,
                                     int startRes, int endRes);
     static H3Index findBoundaryCellInDirection(const std::vector<H3Index> &cells, H3Index from, H3Index direction);
     std::vector<H3Index> findLocalPathAtResolution(H3Index start, H3Index end, H3Index limitParent);
-    std::vector<H3Index> getChildrenAtResolution(H3Index parent, int resolution);
+    static std::vector<H3Index> getChildrenAtResolution(H3Index parent, int resolution);
     std::array<H3Index, MAX_NEIGHBORS> getNeighbors(H3Index cell);
     double getDistanceBetweenCells(H3Index cell1, H3Index cell2);
     double heuristic(H3Index cell, const LatLng &targetCoord);
     std::vector<H3Index> reconstructPath(const std::unordered_map<H3Index, H3Index, H3IndexHash> &previous,
                                          H3Index start, H3Index end);
-    static H3Index cellToParentRes2(H3Index index);
+    static H3Index cellToParentRes3(H3Index index);
 };
 
 #endif  // Q_HEX_WALKER_ASTAR_H

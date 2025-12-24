@@ -615,8 +615,8 @@ ApplicationWindow {
                     id: mazePolyDelegate
                     path: modelData
                     opacity: 0.3
-                    color: "black"
-                    border.color: "red"
+                    color: "pink"
+                    border.color: "black"
                     border.width: 2
                     z: 1
 

@@ -139,14 +139,14 @@ void H3Worker::doWork() {
 
         if (!isMazeComputed) {
             const QGeoCoordinate center{0, 0, 0};
-            int radius = 25;
+            int radius = 50;
 
             // Конвертируем координату в H3
             LatLng ll{.lat = degsToRads(center.latitude()), .lng = degsToRads(center.longitude())};
 
             H3Index centerCell = H3_NULL;
             H3Error err = E_SUCCESS;
-            err = latLngToCell(&ll, 2, &centerCell);
+            err = latLngToCell(&ll, 3, &centerCell);
             if (err != E_SUCCESS) {
                 spdlog::warn("{} {}", "Failed to convert center coordinates to H3", describeH3Error(err));
             }
@@ -165,6 +165,7 @@ void H3Worker::doWork() {
             spdlog::info("Maze generation complete");
 
             int64_t ringSize = 0;
+            radius++;
             err = maxGridDiskSize(radius, &ringSize);
             if (err != E_SUCCESS) {
                 spdlog::warn(describeH3Error(err));
@@ -194,12 +195,13 @@ void H3Worker::doWork() {
                 }
                 walls.insert(cellId);
             }
+            // Визуализация: объединяем все стены в полигоны и отправляем
+            if (const auto mergedPolygons = cellsToMergedPolygons(walls); !mergedPolygons.empty()) {
+                emit mazePolygonsComputed(mergedPolygons);
+            }
         }
 
-        // Визуализация: объединяем все стены в полигоны и отправляем
-        if (const auto mergedPolygons = cellsToMergedPolygons(walls); !mergedPolygons.empty()) {
-            emit mazePolygonsComputed(mergedPolygons);
-        }
+
 
         // Устанавливаем стены в A*
         astar_->setBlockedCells(walls);
@@ -224,7 +226,6 @@ void H3Worker::doWork() {
                     if (!childPolygon.has_value()) {
                         break;
                     }
-                    std::this_thread::sleep_for(1ms);
                     emit cellComputed(getResolution(index), index, childPolygon.value(), true);
                 }
             } catch (const std::exception &e) {

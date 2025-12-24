@@ -24,8 +24,8 @@ std::vector<H3Index> H3AStar::findShortestPath(const H3Index start, const H3Inde
     const int startRes = getResolution(start);
     const int endRes = getResolution(end);
 
-    const H3Index startRes2 = startRes != 2 ? cellToParentRes2(start) : start;
-    const H3Index endRes2 = endRes != 2 ? cellToParentRes2(end) : end;
+    const H3Index startRes2 = startRes != 3 ? cellToParentRes3(start) : start;
+    const H3Index endRes2 = endRes != 3 ? cellToParentRes3(end) : end;
 
     if (startRes2 == H3_NULL || endRes2 == H3_NULL) {
         throw std::domain_error("Error converting to resolution 2");
@@ -39,7 +39,7 @@ std::vector<H3Index> H3AStar::findShortestPath(const H3Index start, const H3Inde
         throw std::runtime_error("Error getting target coordinates");
     }
 
-    const std::vector<H3Index> pathRes2 = findPathAtResolution2(startRes2, endRes2, endCoord);
+    const std::vector<H3Index> pathRes2 = findPathAtResolution3(startRes2, endRes2, endCoord);
     if (pathRes2.empty()) {
         return {};
     }
@@ -47,7 +47,7 @@ std::vector<H3Index> H3AStar::findShortestPath(const H3Index start, const H3Inde
     return refinePath(pathRes2, originalStart, originalEnd, startRes, endRes);
 }
 
-std::vector<H3Index> H3AStar::findPathAtResolution2(const H3Index start, const H3Index end, const LatLng &endCoord) {
+std::vector<H3Index> H3AStar::findPathAtResolution3(const H3Index start, const H3Index end, const LatLng &endCoord) {
     std::priority_queue<Node, std::vector<Node>, std::greater<>> openSet;
     std::unordered_map<H3Index, double, H3IndexHash> gScores;
     std::unordered_map<H3Index, H3Index, H3IndexHash> previous;
@@ -176,7 +176,7 @@ std::vector<H3Index> H3AStar::refineEndSegmentGradual(const H3Index prevInPath, 
     // Строим путь с постепенным увеличением разрешения от 2 до endRes
     H3Index currentCell = parentEnd;
 
-    for (int res = 3; res <= endRes; ++res) {
+    for (int res = 4; res <= endRes; ++res) {
         // Получаем дочерние ячейки текущей ячейки на разрешении res
         std::vector<H3Index> children = getChildrenAtResolution(currentCell, res);
         if (children.empty()) {
@@ -226,7 +226,7 @@ std::vector<H3Index> H3AStar::refineStartSegmentGradual(const H3Index originalSt
     // Строим путь с постепенным уменьшением разрешения от startRes до 2
     H3Index currentCell = originalStart;
 
-    for (int res = startRes - 1; res >= 2; --res) {
+    for (int res = startRes - 1; res >= 3; --res) {
         // Получаем родителя текущей ячейки на разрешении res
         H3Index parent = H3_NULL;
         if (cellToParent(currentCell, res, &parent) != E_SUCCESS) {
@@ -258,37 +258,37 @@ std::vector<H3Index> H3AStar::refineStartSegmentGradual(const H3Index originalSt
 
     return segment;
 }
-std::vector<H3Index> H3AStar::refinePath(const std::vector<H3Index> &pathRes2, const H3Index originalStart,
+std::vector<H3Index> H3AStar::refinePath(const std::vector<H3Index> &pathRes3, const H3Index originalStart,
                                          const H3Index originalEnd, const int startRes, const int endRes) {
-    if (pathRes2.size() < 2) {
+    if (pathRes3.size() < 2) {
         return {};
     }
 
     std::vector<H3Index> refinedPath;
-    refinedPath.reserve(pathRes2.size() - 1);
+    refinedPath.reserve(pathRes3.size() - 1);
 
     // 1. Детализируем начало пути с плавным переходом разрешений
-    if (startRes > 2) {
-        std::vector<H3Index> startSegment = refineStartSegmentGradual(originalStart, pathRes2.at(1), startRes);
+    if (startRes > 3) {
+        std::vector<H3Index> startSegment = refineStartSegmentGradual(originalStart, pathRes3.at(1), startRes);
         refinedPath.insert(refinedPath.end(), startSegment.begin(), startSegment.end());
     } else {
-        refinedPath.emplace_back(pathRes2.front());
+        refinedPath.emplace_back(pathRes3.front());
     }
 
     // 2. Добавляем средние элементы пути (если есть)
-    for (size_t i = 1; i < pathRes2.size() - 1; ++i) {
-        refinedPath.emplace_back(pathRes2[i]);
+    for (size_t i = 1; i < pathRes3.size() - 1; ++i) {
+        refinedPath.emplace_back(pathRes3[i]);
     }
 
     // 3. Детализируем конец пути с плавным переходом разрешений
-    if (endRes > 2 && pathRes2.size() >= 2) {
+    if (endRes > 3 && pathRes3.size() >= 2) {
         std::vector<H3Index> endSegment;
-        endSegment.reserve(pathRes2.size() - 1);
+        endSegment.reserve(pathRes3.size() - 1);
         endSegment =
-            refineEndSegmentGradual(pathRes2[pathRes2.size() - 2], pathRes2[pathRes2.size() - 1], originalEnd, endRes);
+            refineEndSegmentGradual(pathRes3[pathRes3.size() - 2], pathRes3[pathRes3.size() - 1], originalEnd, endRes);
         refinedPath.insert(refinedPath.end(), endSegment.begin(), endSegment.end());
     } else {
-        refinedPath.emplace_back(pathRes2.back());
+        refinedPath.emplace_back(pathRes3.back());
     }
 
     return refinedPath;
@@ -418,9 +418,9 @@ std::vector<H3Index> H3AStar::reconstructPath(const std::unordered_map<H3Index, 
     return path;
 }
 
-H3Index H3AStar::cellToParentRes2(const H3Index index) {
+H3Index H3AStar::cellToParentRes3(const H3Index index) {
     H3Index indexRes2 = H3_NULL;
-    if (cellToParent(index, 2, &indexRes2) != E_SUCCESS) {
+    if (cellToParent(index, 3, &indexRes2) != E_SUCCESS) {
         return H3_NULL;
     }
     return indexRes2;
