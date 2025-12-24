@@ -88,11 +88,11 @@ std::vector<H3Index> H3MazeGenerator::getRoomNeighbors(const H3Index room,
 
     // int64_t maxKRingSize = 0;
     // maxGridDiskSize(kRingSize, &maxKRingSize) == 19,
-    // therefore, ring size is 19.
-
+    // Thats why, ring size is 19.
     std::array<H3Index, 19> ring = {};
     // Получаем соседей на расстоянии 2
-    if (constexpr int kRingSize = 2; E_SUCCESS != gridDisk(room, kRingSize, ring.data())) {
+    constexpr int kRingSize = 2;
+    if ( E_SUCCESS != gridDisk(room, kRingSize, ring.data())) {
         return roomNeighbors;
     }
     for (const auto &candidate : ring) {
@@ -103,7 +103,7 @@ std::vector<H3Index> H3MazeGenerator::getRoomNeighbors(const H3Index room,
         // Проверяем, что это комната и находится на расстоянии ровно 2
         if (rooms.contains(candidate)) {
             int64_t distance = 0;
-            if (gridDistance(room, candidate, &distance) == E_SUCCESS && distance == 2) {
+            if (gridDistance(room, candidate, &distance) == E_SUCCESS && distance == kRingSize) {
                 roomNeighbors.push_back(candidate);
             }
         }
@@ -118,13 +118,6 @@ std::optional<H3Index> H3MazeGenerator::findWallBetween(const H3Index room1, con
     const auto neighbors2 = getNeighbors(room2);
 
     // Ищем общего соседа - это и будет стена между комнатами
-    // for (const auto &n1 : neighbors1) {
-    //     for (const auto &n2 : neighbors2) {
-    //         if (n1 == n2) {
-    //             return n1;
-    //         }
-    //     }
-    // }
     for (const auto &n1 : neighbors1) {
         if (std::ranges::any_of(neighbors2, [&](const auto &n2) { return n1 == n2; })) {
             return n1;
@@ -167,7 +160,7 @@ H3MazeGenerator::generateMazePrim(const std::unordered_set<H3Index, H3IndexHash>
         }
     }
 
-    // Основной цикл алгоритма Prim's
+    // Основной цикл алгоритма Prim
     while (!wallList.empty()) {
         // Выбираем случайную стену из списка
         std::uniform_int_distribution<size_t> wallDist(0, wallList.size() - 1);

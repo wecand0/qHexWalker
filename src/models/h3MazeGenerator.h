@@ -37,7 +37,7 @@ private:
     std::array<H3Index, 6> getNeighbors(H3Index cell);
 
     // Получает все соты в радиусе
-    std::unordered_set<H3Index, H3IndexHash> getCellsInRadius(H3Index center, int radius);
+    static std::unordered_set<H3Index, H3IndexHash> getCellsInRadius(H3Index center, int radius);
 
     // Создает сетку комнат с минимальным интервалом 2
     std::unordered_set<H3Index, H3IndexHash>
@@ -50,11 +50,11 @@ private:
     std::unordered_set<H3Index, H3IndexHash> generateMazePrim(const std::unordered_set<H3Index, H3IndexHash> &rooms);
 
     // Находит комнаты-соседи на расстоянии 2
-    std::vector<H3Index> getRoomNeighbors(H3Index room, const std::unordered_set<H3Index, H3IndexHash> &rooms);
+    static std::vector<H3Index> getRoomNeighbors(H3Index room, const std::unordered_set<H3Index, H3IndexHash> &rooms);
 
     // Находит самую удаленную комнату от стартовой через BFS
     H3Index findFarthestRoom(H3Index start, const std::unordered_set<H3Index, H3IndexHash> &passages);
 
     // Проверяет, находится ли ячейка на границе области
-    bool isOnBorder(H3Index cell, H3Index center, int radius);
+    static bool isOnBorder(H3Index cell, H3Index center, int radius);
 };

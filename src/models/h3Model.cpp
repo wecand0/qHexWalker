@@ -274,25 +274,9 @@ void H3Model::onMazePolygonsComputed(const std::vector<QVariantList> &polygons) 
     mazePolygons_.clear();
     mazePolygons_.reserve(static_cast<qsizetype>(polygons.size()));
 
-    auto biggestI = 0;
-    auto s = 0;
-
-    for (size_t i = 0; i < polygons.size(); i++) {
-        if (polygons[i].size() > s) {
-            s = polygons[i].size();
-            biggestI = i;
-            spdlog::info("Biggest polygon is {} {}", polygons.at(i).size(), i);
-        }
+    for (const auto &polygon : polygons) {
+        mazePolygons_.append(polygon);
     }
-    spdlog::warn(biggestI);
-    coordinates_ = polygons[biggestI];
-    emit coordinatesChanged();
-    // for (auto &polygon : polygons) {
-    //     if (polygon.size() > biggest) {
-    //         biggest = polygon.size();
-    //     }
-    //     mazePolygons_.append(polygon);
-    // }
 
     spdlog::info("Maze polygons updated: {} polygons", mazePolygons_.size());
     emit mazePolygonsChanged();

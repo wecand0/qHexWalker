@@ -15,17 +15,41 @@ std::vector<QVariantList> cellsToMergedPolygons(const std::unordered_set<H3Index
         return result;
     }
 
-    // Convert set to vector for H3 API
-    std::vector<H3Index> cellsVec(cells.begin(), cells.end());
-    cellsVec.shrink_to_fit();
-    // cellsVec.erase(cellsVec.begin(), cellsVec.begin() + 1);
+    // Filter valid cells - remove H3_NULL, pentagons, and ensure same resolution
+    std::vector<H3Index> cellsVec;
+    cellsVec.reserve(cells.size());
+
+    int targetRes = -1;
+    for (const auto &cell : cells) {
+        if (cell == H3_NULL || !isValidCell(cell)) {
+            continue;
+        }
+        if (isPentagon(cell)) {
+            continue;  // Skip pentagons - they cause issues with cellsToLinkedMultiPolygon
+        }
+
+        const int res = getResolution(cell);
+        if (targetRes == -1) {
+            targetRes = res;
+        } else if (res != targetRes) {
+            continue;  // Skip cells with different resolution
+        }
+
+        cellsVec.emplace_back(cell);
+    }
+
+    if (cellsVec.empty()) {
+        spdlog::warn("No valid cells to convert to polygons");
+        return result;
+    }
+
+    spdlog::info("Converting {} valid cells (res={}) to polygons", cellsVec.size(), targetRes);
 
     LinkedGeoPolygon polygon{};
-    H3Error err;
-    err = cellsToLinkedMultiPolygon(cellsVec.data(), static_cast<int>(cellsVec.size()), &polygon);
+    H3Error err = cellsToLinkedMultiPolygon(cellsVec.data(), static_cast<int64_t>(cellsVec.size()), &polygon);
 
     if (err != E_SUCCESS) {
-        spdlog::warn("cellsToLinkedMultiPolygon failed: {}", describeH3Error(err));
+        spdlog::warn("cellsToLinkedMultiPolygon failed: {} (cells count: {})", describeH3Error(err), cellsVec.size());
         return result;
     }
 
@@ -37,17 +61,40 @@ std::vector<QVariantList> cellsToMergedPolygons(const std::unordered_set<H3Index
             QVariantList polyPath;
 
             const LinkedLatLng *currentVertex = currentPoly->first->first;
+            double prevLng = 0.0;
+            bool isFirst = true;
+
             while (currentVertex != nullptr) {
                 const double lat = radsToDegs(currentVertex->vertex.lat);
-                const double lng = radsToDegs(currentVertex->vertex.lng);
+                double lng = radsToDegs(currentVertex->vertex.lng);
+
+                // Обработка антимеридиана - корректируем долготу если скачок > 180°
+                if (!isFirst) {
+                    if (const double delta = lng - prevLng; delta > 180.0) {
+                        lng -= 360.0;
+                    } else if (delta < -180.0) {
+                        lng += 360.0;
+                    }
+                }
+
                 polyPath.emplace_back(QVariant::fromValue(QGeoCoordinate{lat, lng, 0}));
+                prevLng = lng;
+                isFirst = false;
                 currentVertex = currentVertex->next;
             }
 
             // Close the polygon by adding the first point at the end
             if (!polyPath.isEmpty() && currentPoly->first->first != nullptr) {
                 const double lat = radsToDegs(currentPoly->first->first->vertex.lat);
-                const double lng = radsToDegs(currentPoly->first->first->vertex.lng);
+                double lng = radsToDegs(currentPoly->first->first->vertex.lng);
+
+                // Корректируем замыкающую точку относительно последней
+                if (const double delta = lng - prevLng; delta > 180.0) {
+                    lng -= 360.0;
+                } else if (delta < -180.0) {
+                    lng += 360.0;
+                }
+
                 polyPath.emplace_back(QVariant::fromValue(QGeoCoordinate{lat, lng, 0}));
             }
 
@@ -92,7 +139,7 @@ void H3Worker::doWork() {
 
         if (!isMazeComputed) {
             const QGeoCoordinate center{0, 0, 0};
-            int radius = 20;
+            int radius = 25;
 
             // Конвертируем координату в H3
             LatLng ll{.lat = degsToRads(center.latitude()), .lng = degsToRads(center.longitude())};
@@ -142,27 +189,29 @@ void H3Worker::doWork() {
                 if (!isValidCell(cellId)) {
                     continue;
                 }
+                if (walls.contains(cellId)) {
+                    continue;
+                }
                 walls.insert(cellId);
             }
         }
 
         // Визуализация: объединяем все стены в полигоны и отправляем
-        auto mergedPolygons = cellsToMergedPolygons(walls);
-        if (!mergedPolygons.empty()) {
+        if (const auto mergedPolygons = cellsToMergedPolygons(walls); !mergedPolygons.empty()) {
             emit mazePolygonsComputed(mergedPolygons);
         }
 
         // Устанавливаем стены в A*
         astar_->setBlockedCells(walls);
 
-        for (const auto index : walls) {
-            auto childPolygon = Helper::indexToPolygon(index);
-            if (!childPolygon.has_value()) {
-                break;
-            }
-            std::this_thread::sleep_for(1ms);
-            emit cellComputed(getResolution(index), index, childPolygon.value(), false);
-        }
+        // for (const auto index : walls) {
+        //     auto childPolygon = Helper::indexToPolygon(index);
+        //     if (!childPolygon.has_value()) {
+        //         break;
+        //     }
+        //     std::this_thread::sleep_for(1ms);
+        //     emit cellComputed(getResolution(index), index, childPolygon.value(), false);
+        // }
 
         H3Index prevIndex = req.indexes.front();
         std::vector<H3Index> path;
