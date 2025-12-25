@@ -45,6 +45,10 @@ void EntryPoint::InitDataModels() {
 
     connect(targetsModel_, &H3TargetsModel::onCompute, h3Model_, &H3Model::requestCells, Qt::QueuedConnection);
     connect(targetsModel_, &H3TargetsModel::onRemoveCell, h3Model_, &H3Model::requestCells, Qt::QueuedConnection);
+    connect(h3Model_, &H3Model::mazeWallsGenerated, targetsModel_, &H3TargetsModel::setMazeWalls,
+            Qt::QueuedConnection);
+    connect(h3Model_, &H3Model::mazeBoundsGenerated, targetsModel_, &H3TargetsModel::setMazeBounds,
+            Qt::QueuedConnection);
 }
 void EntryPoint::InitMap() {
     mapProvider_ = new MapProvider(this);

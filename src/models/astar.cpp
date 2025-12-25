@@ -15,7 +15,8 @@ std::vector<H3Index> H3AStar::findShortestPath(const H3Index start, const H3Inde
     if (start == end) {
         throw std::runtime_error("Start and end points are the same");
     }
-    if (blockedCells.contains(start) || blockedCells.contains(end)) {
+
+    if (!blockedCells.empty() && (blockedCells.contains(start) || blockedCells.contains(end))) {
         throw std::runtime_error("Start or end cell is blocked");
     }
 
@@ -24,77 +25,209 @@ std::vector<H3Index> H3AStar::findShortestPath(const H3Index start, const H3Inde
     const int startRes = getResolution(start);
     const int endRes = getResolution(end);
 
-    const H3Index startRes2 = startRes != 2 ? cellToParentRes2(start) : start;
-    const H3Index endRes2 = endRes != 2 ? cellToParentRes2(end) : end;
+    H3Index startRes3 = startRes != 3 ? cellToParentRes3(start) : start;
+    H3Index endRes3 = endRes != 3 ? cellToParentRes3(end) : end;
 
-    if (startRes2 == H3_NULL || endRes2 == H3_NULL) {
-        throw std::domain_error("Error converting to resolution 2");
+    // H3Index startRes3 = H3_NULL;
+    // H3Index endRes3  = H3_NULL;
+    //
+    // if (startRes < 3) {
+    //     startRes3 = cellToParentRes3(start);
+    // }else if (startRes > 3) {
+    //     startRes3 = cellToChildRes3(start);
+    // }else {
+    //     startRes3 = start;
+    // }
+    //
+    // if (endRes < 3) {
+    //     endRes3 = cellToParentRes3(start);
+    // }else if (endRes > 3) {
+    //     endRes3 = cellToChildRes3(start);
+    // }else {
+    //     endRes3 = end;
+    // }
+
+    if (startRes3 == H3_NULL || endRes3 == H3_NULL) {
+        throw std::domain_error("Error converting to resolution 3");
     }
-    if (blockedCells.contains(startRes2) || blockedCells.contains(endRes2)) {
+    if (!blockedCells.empty() && (blockedCells.contains(startRes3) || blockedCells.contains(endRes3))) {
         return {};  // Coarse start/end blocked
     }
 
     LatLng endCoord;
-    if (cellToLatLng(endRes2, &endCoord) != E_SUCCESS) {
+    if (cellToLatLng(endRes3, &endCoord) != E_SUCCESS) {
         throw std::runtime_error("Error getting target coordinates");
     }
 
-    const std::vector<H3Index> pathRes2 = findPathAtResolution2(startRes2, endRes2, endCoord);
-    if (pathRes2.empty()) {
+    const std::vector<H3Index> pathRes3 = findPathAtResolution3(startRes3, endRes3, endCoord);
+    if (pathRes3.empty()) {
         return {};
     }
 
-    return refinePath(pathRes2, originalStart, originalEnd, startRes, endRes);
+    return refinePath(pathRes3, originalStart, originalEnd, startRes, endRes);
 }
 
-std::vector<H3Index> H3AStar::findPathAtResolution2(const H3Index start, const H3Index end, const LatLng &endCoord) {
-    std::priority_queue<Node, std::vector<Node>, std::greater<>> openSet;
-    std::unordered_map<H3Index, double, H3IndexHash> gScores;
-    std::unordered_map<H3Index, H3Index, H3IndexHash> previous;
-    std::unordered_set<H3Index, H3IndexHash> closedSet;
+std::vector<H3Index> H3AStar::findPathAtResolution3(const H3Index start, const H3Index end, const LatLng &endCoord) {
+    // Bidirectional A*: поиск одновременно с двух сторон
 
-    gScores.reserve(300);
-    previous.reserve(300);
-    closedSet.reserve(300);
+    // Forward search (от start к end)
+    std::priority_queue<Node, std::vector<Node>, std::greater<>> forwardOpen;
+    std::unordered_map<H3Index, double, H3IndexHash> forwardG;
+    std::unordered_map<H3Index, H3Index, H3IndexHash> forwardPrev;
+    std::unordered_set<H3Index, H3IndexHash> forwardClosed;
 
-    gScores[start] = 0.0;
-    openSet.emplace(Node{start, 0.0, heuristic(start, endCoord)});
+    // Backward search (от end к start)
+    std::priority_queue<Node, std::vector<Node>, std::greater<>> backwardOpen;
+    std::unordered_map<H3Index, double, H3IndexHash> backwardG;
+    std::unordered_map<H3Index, H3Index, H3IndexHash> backwardPrev;
+    std::unordered_set<H3Index, H3IndexHash> backwardClosed;
+
+    // Резервирование памяти (по ~150 на каждое направление)
+    forwardG.reserve(150);
+    forwardPrev.reserve(150);
+    forwardClosed.reserve(150);
+    backwardG.reserve(150);
+    backwardPrev.reserve(150);
+    backwardClosed.reserve(150);
+
+    // Инициализация
+    LatLng startCoord;
+    if (cellToLatLng(start, &startCoord) != E_SUCCESS) {
+        return {};
+    }
+
+    forwardG[start] = 0.0;
+    forwardOpen.emplace(Node{start, 0.0, heuristic(start, endCoord)});
+
+    backwardG[end] = 0.0;
+    backwardOpen.emplace(Node{end, 0.0, heuristic(end, startCoord)});
+
+    // Переменные для отслеживания встречи
+    H3Index meetingPoint = H3_NULL;
+    double bestPathCost = std::numeric_limits<double>::infinity();
     int nodesExplored = 0;
 
-    while (!openSet.empty()) {
-        Node current = openSet.top();
-        openSet.pop();
-        nodesExplored++;
+    // Попеременный поиск с двух сторон
+    while (!forwardOpen.empty() && !backwardOpen.empty()) {
+        // Проверка терминации: если лучший путь уже найден
+        double forwardMin = forwardOpen.top().fScore;
+        double backwardMin = backwardOpen.top().fScore;
 
-        if (current.cell == end) {
-            return reconstructPath(previous, start, end);
+        if (forwardMin + backwardMin >= bestPathCost) {
+            break;  // Оптимальный путь найден
         }
 
-        if (closedSet.contains(current.cell)) {
-            continue;
-        }
-        closedSet.insert(current.cell);
-        emit newCell(current.cell);
+        // === FORWARD STEP ===
+        if (!forwardOpen.empty()) {
+            Node current = forwardOpen.top();
+            forwardOpen.pop();
+            nodesExplored++;
 
-        for (const auto neighbors = getNeighbors(current.cell); const H3Index &neighbor : neighbors) {
-            if (neighbor == H3_NULL)
-                continue;
+            if (!forwardClosed.contains(current.cell)) {
+                forwardClosed.insert(current.cell);
+                emit newCell(current.cell);
 
-            // Skip blocked and closed cells
-            if (closedSet.contains(neighbor) || blockedCells.contains(neighbor)) {
-                continue;
+                // Проверка встречи: нашли ли мы эту ячейку с обратной стороны?
+                if (backwardClosed.contains(current.cell)) {
+                    double pathCost = forwardG[current.cell] + backwardG[current.cell];
+                    if (pathCost < bestPathCost) {
+                        bestPathCost = pathCost;
+                        meetingPoint = current.cell;
+                    }
+                }
+
+                // Расширение узла
+                for (const auto neighbors = getNeighbors(current.cell); const H3Index &neighbor : neighbors) {
+                    if (neighbor == H3_NULL || forwardClosed.contains(neighbor) || blockedCells.contains(neighbor)) {
+                        continue;
+                    }
+
+                    double edgeDistance = getDistanceBetweenCells(current.cell, neighbor);
+                    double tentativeG = forwardG[current.cell] + edgeDistance;
+
+                    if (!forwardG.contains(neighbor) || tentativeG < forwardG[neighbor]) {
+                        forwardPrev[neighbor] = current.cell;
+                        forwardG[neighbor] = tentativeG;
+                        double h = heuristic(neighbor, endCoord);
+                        forwardOpen.emplace(Node{neighbor, tentativeG, tentativeG + h});
+                    }
+                }
             }
+        }
 
-            double edgeDistance = getDistanceBetweenCells(current.cell, neighbor);
-            double tentativeGScore = gScores[current.cell] + edgeDistance;
+        // === BACKWARD STEP ===
+        if (!backwardOpen.empty()) {
+            Node current = backwardOpen.top();
+            backwardOpen.pop();
+            nodesExplored++;
 
-            if (!gScores.contains(neighbor) || tentativeGScore < gScores[neighbor]) {
-                previous[neighbor] = current.cell;
-                gScores[neighbor] = tentativeGScore;
-                double h = heuristic(neighbor, endCoord);
-                openSet.emplace(Node{neighbor, tentativeGScore, tentativeGScore + h});
+            if (!backwardClosed.contains(current.cell)) {
+                backwardClosed.insert(current.cell);
+                emit newCell(current.cell);
+
+                // Проверка встречи
+                if (forwardClosed.contains(current.cell)) {
+                    double pathCost = forwardG[current.cell] + backwardG[current.cell];
+                    if (pathCost < bestPathCost) {
+                        bestPathCost = pathCost;
+                        meetingPoint = current.cell;
+                    }
+                }
+
+                // Расширение узла
+                for (const auto neighbors = getNeighbors(current.cell); const H3Index &neighbor : neighbors) {
+                    if (neighbor == H3_NULL || backwardClosed.contains(neighbor) || blockedCells.contains(neighbor)) {
+                        continue;
+                    }
+
+                    double edgeDistance = getDistanceBetweenCells(current.cell, neighbor);
+                    double tentativeG = backwardG[current.cell] + edgeDistance;
+
+                    if (!backwardG.contains(neighbor) || tentativeG < backwardG[neighbor]) {
+                        backwardPrev[neighbor] = current.cell;
+                        backwardG[neighbor] = tentativeG;
+                        double h = heuristic(neighbor, startCoord);
+                        backwardOpen.emplace(Node{neighbor, tentativeG, tentativeG + h});
+                    }
+                }
             }
         }
+    }
+
+    // Реконструкция пути через точку встречи
+    if (meetingPoint != H3_NULL) {
+        // Путь от start до meetingPoint
+        std::vector<H3Index> forwardPath;
+        H3Index current = meetingPoint;
+        while (current != start) {
+            forwardPath.push_back(current);
+            auto it = forwardPrev.find(current);
+            if (it == forwardPrev.end()) {
+                break;
+            }
+            current = it->second;
+        }
+        forwardPath.push_back(start);
+        std::ranges::reverse(forwardPath);
+
+        // Путь от meetingPoint до end
+        std::vector<H3Index> backwardPath;
+        current = meetingPoint;
+        while (current != end) {
+            auto it = backwardPrev.find(current);
+            if (it == backwardPrev.end()) {
+                break;
+            }
+            current = it->second;
+            backwardPath.push_back(current);
+        }
+        backwardPath.push_back(end);
+
+        // Объединение путей (без дублирования meetingPoint)
+        forwardPath.insert(forwardPath.end(), backwardPath.begin(), backwardPath.end());
+
+        spdlog::info("Bidirectional A* found path, explored {} nodes (meeting at 0x{:x})", nodesExplored, meetingPoint);
+        return forwardPath;
     }
 
     spdlog::warn("No path found, explored {} nodes", nodesExplored);
@@ -176,7 +309,7 @@ std::vector<H3Index> H3AStar::refineEndSegmentGradual(const H3Index prevInPath, 
     // Строим путь с постепенным увеличением разрешения от 2 до endRes
     H3Index currentCell = parentEnd;
 
-    for (int res = 3; res <= endRes; ++res) {
+    for (int res = 4; res <= endRes; ++res) {
         // Получаем дочерние ячейки текущей ячейки на разрешении res
         std::vector<H3Index> children = getChildrenAtResolution(currentCell, res);
         if (children.empty()) {
@@ -226,7 +359,7 @@ std::vector<H3Index> H3AStar::refineStartSegmentGradual(const H3Index originalSt
     // Строим путь с постепенным уменьшением разрешения от startRes до 2
     H3Index currentCell = originalStart;
 
-    for (int res = startRes - 1; res >= 2; --res) {
+    for (int res = startRes - 1; res >= 3; --res) {
         // Получаем родителя текущей ячейки на разрешении res
         H3Index parent = H3_NULL;
         if (cellToParent(currentCell, res, &parent) != E_SUCCESS) {
@@ -258,37 +391,37 @@ std::vector<H3Index> H3AStar::refineStartSegmentGradual(const H3Index originalSt
 
     return segment;
 }
-std::vector<H3Index> H3AStar::refinePath(const std::vector<H3Index> &pathRes2, const H3Index originalStart,
+std::vector<H3Index> H3AStar::refinePath(const std::vector<H3Index> &pathRes3, const H3Index originalStart,
                                          const H3Index originalEnd, const int startRes, const int endRes) {
-    if (pathRes2.size() < 2) {
+    if (pathRes3.size() < 2) {
         return {};
     }
 
     std::vector<H3Index> refinedPath;
-    refinedPath.reserve(pathRes2.size() - 1);
+    refinedPath.reserve(pathRes3.size() - 1);
 
     // 1. Детализируем начало пути с плавным переходом разрешений
-    if (startRes > 2) {
-        std::vector<H3Index> startSegment = refineStartSegmentGradual(originalStart, pathRes2.at(1), startRes);
+    if (startRes > 3) {
+        std::vector<H3Index> startSegment = refineStartSegmentGradual(originalStart, pathRes3.at(1), startRes);
         refinedPath.insert(refinedPath.end(), startSegment.begin(), startSegment.end());
     } else {
-        refinedPath.emplace_back(pathRes2.front());
+        refinedPath.emplace_back(pathRes3.front());
     }
 
     // 2. Добавляем средние элементы пути (если есть)
-    for (size_t i = 1; i < pathRes2.size() - 1; ++i) {
-        refinedPath.emplace_back(pathRes2[i]);
+    for (size_t i = 1; i < pathRes3.size() - 1; ++i) {
+        refinedPath.emplace_back(pathRes3[i]);
     }
 
     // 3. Детализируем конец пути с плавным переходом разрешений
-    if (endRes > 2 && pathRes2.size() >= 2) {
+    if (endRes > 3 && pathRes3.size() >= 2) {
         std::vector<H3Index> endSegment;
-        endSegment.reserve(pathRes2.size() - 1);
+        endSegment.reserve(pathRes3.size() - 1);
         endSegment =
-            refineEndSegmentGradual(pathRes2[pathRes2.size() - 2], pathRes2[pathRes2.size() - 1], originalEnd, endRes);
+            refineEndSegmentGradual(pathRes3[pathRes3.size() - 2], pathRes3[pathRes3.size() - 1], originalEnd, endRes);
         refinedPath.insert(refinedPath.end(), endSegment.begin(), endSegment.end());
     } else {
-        refinedPath.emplace_back(pathRes2.back());
+        refinedPath.emplace_back(pathRes3.back());
     }
 
     return refinedPath;
@@ -418,10 +551,17 @@ std::vector<H3Index> H3AStar::reconstructPath(const std::unordered_map<H3Index, 
     return path;
 }
 
-H3Index H3AStar::cellToParentRes2(const H3Index index) {
-    H3Index indexRes2 = H3_NULL;
-    if (cellToParent(index, 2, &indexRes2) != E_SUCCESS) {
+H3Index H3AStar::cellToParentRes3(const H3Index index) {
+    H3Index indexRes3 = H3_NULL;
+    if (cellToParent(index, 3, &indexRes3) != E_SUCCESS) {
         return H3_NULL;
     }
-    return indexRes2;
+    return indexRes3;
+}
+H3Index H3AStar::cellToChildRes3(H3Index index) {
+    H3Index indexRes3 = H3_NULL;
+    if (cellToCenterChild(index, 3, &indexRes3) != E_SUCCESS) {
+        return H3_NULL;
+    }
+    return indexRes3;
 }

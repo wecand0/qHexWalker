@@ -19,34 +19,37 @@ public:
     [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
     [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
 
-private slots:
-    // void onCellAdded(quint8 res, H3Index index, const QVariantList &polygon, bool isSearching);
-
 public slots:
     Q_INVOKABLE void compute();
-    Q_INVOKABLE void move(int from, int to);  // <-- обязательно!
+    Q_INVOKABLE void move(int from, int to);
     Q_INVOKABLE qsizetype remove(int row);
     Q_INVOKABLE void requestCell(quint8 mapZoom, const QGeoCoordinate &coordinate);
     Q_INVOKABLE void clearAllCells();
+    void setMazeWalls(const std::unordered_set<H3Index> &walls);
+    void setMazeBounds(const QGeoCoordinate &center, double radiusMeters);
 
 signals:
     void onRemoveCell(const std::vector<H3Index> &indexes);
     void onCompute(const std::vector<H3Index> &indexes);
     void clearingStarted();
     void clearingFinished();
+    void showNotification(const QString &message, const QString &type);
 
 private:
     [[nodiscard]] bool isCoordinateTargetValid(quint8 zoom, const QGeoCoordinate &coordinate) const;
 
     QList<H3Target *> cells_;
+    std::unordered_set<H3Index> mazeWalls_;  // Стены лабиринта
+    QGeoCoordinate mazeCenter_;              // Центр лабиринта
+    double mazeRadius_{0.0};                 // Радиус допустимой области в метрах
 
     const uint8_t minZoom_c{3};
     const uint8_t maxZoom_c{15};
     std::unordered_map<uint8_t, uint8_t> zoomToRes_;
     const QHash<int, QString> resolutionColors_c = {
-        {2, "crimson"},      {3, "orangered"},   {4, "darkorange"},  {5, "orange"},          {6, "gold"},
-        {7, "yellow"},       {8, "greenyellow"}, {9, "limegreen"},   {10, "mediumseagreen"}, {11, "turquoise"},
-        {12, "deepskyblue"}, {13, "dodgerblue"}, {14, "mediumblue"}, {15, "darkviolet"}};
+        {3, "limegreen"},   {4, "green"},       {5, "darkGreen"},       {6, "gold"},       {7, "yellow"},
+        {8, "greenyellow"}, {9, "limegreen"},   {10, "mediumseagreen"}, {11, "turquoise"}, {12, "deepskyblue"},
+        {13, "dodgerblue"}, {14, "mediumblue"}, {15, "darkviolet"}};
 
     std::atomic_bool isClearing_{false};
 };

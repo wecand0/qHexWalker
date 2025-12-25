@@ -8,8 +8,6 @@
 #include "astar.h"
 #include "helper.h"
 
-#include "h3MazeGenerator.h"
-
 struct h3_deleter {
     void operator()(LinkedGeoPolygon *poly) const {
         if (poly == nullptr) {
@@ -37,6 +35,12 @@ public slots:
     void doWork();
     // Запросить пересчет ячейки по координатам (в градусах) и разрешению
     void requestCell(const std::vector<H3Index> &index);
+    // Установить стены лабиринта для A* алгоритма
+    void setWalls(const std::unordered_set<H3Index> &mazeWalls);
+
+private slots:
+    // Обработка новой ячейки из A* (для анимации поиска)
+    void onAStarNewCell(H3Index cell);
 
 signals:
     void finished();
@@ -48,18 +52,20 @@ signals:
     // Сигнал для отправки нескольких объединённых полигонов (стены лабиринта)
     void mazePolygonsComputed(const std::vector<QVariantList> &polygons);
 
+    // Статистика поиска пути: количество исследованных ячеек, время (мс), длина пути
+    void searchStats(int exploredCells, double timeMs, int pathLength);
+
 private:
-    void deleteStartEndEntities(H3Index start, H3Index end);
-    static H3Index getMiddleOfRing(const std::vector<H3Index> &distances, H3Index zeroCell);
     std::unordered_set<H3Index> walls;
-    bool isMazeComputed = false;
     H3AStar *astar_{};
-    H3MazeGenerator mazeGenerator_{};
-    // static QVariantList indexToPolygon(H3Index index);
+
     std::atomic_bool isRequested{false};
     std::mutex mutex_;
     std::condition_variable cv_;
     PendingRequest pending_;
+
+    // Счётчик исследованных ячеек для статистики
+    std::atomic<int> exploredCellsCount_{0};
 };
 }  // namespace H3_VIEWER
 

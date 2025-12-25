@@ -16,6 +16,7 @@ ApplicationWindow {
 
     property var coordinate: QtPositioning.coordinate(0.0, 0.0)
     property var zoomTarget: 0
+    property var isInRingOutOfMaze: false
     property var visibleBounds: ({
             north: 0,
             south: 0,
@@ -23,64 +24,9 @@ ApplicationWindow {
             west: 0
         })
 
-    function getRandomColor() {
-        var r = Math.floor(Math.random() * 256);
-        var g = Math.floor(Math.random() * 256);
-        var b = Math.floor(Math.random() * 256);
-        return Qt.rgba(r / 255, g / 255, b / 255, 0.6);
-    }
-
-    // Функция проверки вхождения координаты в границы
-    function isCoordinateInBounds(coord, bounds) {
-        if (!coord || !coord.isValid)
-            return false;
-
-        var lat = coord.latitude;
-        var lon = coord.longitude;
-
-        // Нормализация долготы
-        while (lon > 180)
-            lon -= 360;
-        while (lon < -180)
-            lon += 360;
-
-        // Проверка широты
-        if (lat < bounds.south || lat > bounds.north)
-            return false;
-
-        // Проверка долготы с учетом перехода через 180-й меридиан
-        if (bounds.east >= bounds.west) {
-            // Обычный случай
-            return lon >= bounds.west && lon <= bounds.east;
-        } else {
-            // Переход через 180-й меридиан
-            return lon >= bounds.west || lon <= bounds.east;
-        }
-    }
-
-    // Функция проверки вхождения полигона в границы
-    function isPolygonVisible(polygonPath, bounds) {
-        if (!polygonPath || polygonPath.length === 0)
-            return false;
-        for (var i = 0; i < polygonPath.length; i++) {
-            if (isCoordinateInBounds(polygonPath[0], bounds))
-                return false;
-        }
-        return true;
-    }
-
-    // Функция обновления порядка после перемещения
-    function updateOrder() {
-        for (var i = 0; i < targetsModel.count; i++) {
-            targetsModel.setProperty(i, "order", i + 1);
-        }
-    }
-
-    height: Qt.platform.os === "android" ? Screen.height : Screen.height
+    height: Screen.height
     visible: true
-    width: Qt.platform.os === "android" ? Screen.width : Screen.width
-
-    Component.onCompleted: {}
+    width: Screen.width
 
     Plugin {
         id: mapPlugin
@@ -139,6 +85,31 @@ ApplicationWindow {
 
                         model: targetsModel
                         spacing: 4
+                        focus: true
+                        keyNavigationEnabled: true
+                        highlightFollowsCurrentItem: true
+
+                        // Highlight для текущего выбранного элемента
+                        highlight: Rectangle {
+                            color: "#4169E1"
+                            radius: 4
+                            opacity: 0.3
+                        }
+
+                        // Обработчики клавиш для перемещения элементов
+                        Keys.onPressed: function(event) {
+                            if (event.key === Qt.Key_Up) {
+                               if (currentIndex > 0) {
+                                    targetsModel.move(currentIndex, currentIndex - 1)
+                               }
+                                event.accepted = true
+                            } else if (event.key === Qt.Key_Down) {
+                                if (currentIndex < count - 1) {
+                                    targetsModel.move(currentIndex, currentIndex + 1)
+                                }
+                                event.accepted = true
+                            }
+                        }
 
                         addDisplaced: Transition {
                             NumberAnimation {properties: "x, y"; duration: 300}
@@ -175,17 +146,23 @@ ApplicationWindow {
                             radius: 4
                             width: coordinateListView.width
 
-
                             Behavior on color {
-                                ColorAnimation {
-                                    duration: 150
-                                }
+                                ColorAnimation { duration: 150 }
                             }
+
+                            Behavior on opacity {
+                                NumberAnimation { duration: 200 }
+                            }
+
                             MouseArea {
                                 id: itemMouseArea
                                 anchors.fill: parent
                                 hoverEnabled: true
-                                onClicked: {
+
+                                onClicked: function(mouse) {
+                                    coordinateListView.currentIndex = index
+                                    coordinateListView.forceActiveFocus()
+
                                     centerAnimation.to = model.coordinate
                                     zoomAnimation.to = model.zoom
                                     centerAnimation.start()
@@ -235,7 +212,9 @@ ApplicationWindow {
                                             border.color: "#666666"
                                         }
 
-                                        onClicked: targetsModel.move(index, index - 1)
+                                        onClicked: {
+                                            targetsModel.move(index, index - 1)
+                                        }
                                     }
 
                                     // Кнопка вниз
@@ -259,7 +238,9 @@ ApplicationWindow {
                                             border.color: "#666666"
                                         }
 
-                                        onClicked: targetsModel.move(index, index + 1)
+                                        onClicked: {
+                                            targetsModel.move(index, index + 1)
+                                        }
                                     }
 
                                     // Кнопка удаления
@@ -539,7 +520,7 @@ ApplicationWindow {
                 opacity: 1
                 radius: 7
                 width: addTargetTxt.width
-                z: 1
+                z: 100
 
                 Text {
                     id: addTargetTxt
@@ -567,7 +548,7 @@ ApplicationWindow {
                 opacity: 1
                 radius: 7
                 width: computePathTxt.width
-                z: 1
+                z: 100
 
                 Text {
                     id: computePathTxt
@@ -596,13 +577,41 @@ ApplicationWindow {
                 opacity: 1
                 radius: 7
                 width: clearAllTxt.width
-                z: 1
+                z: 100
 
                 Text {
                     id: clearAllTxt
                     font.pointSize: 20
                     color: "red"
                     text: " Press 'r' to clear all cells "
+                }
+            }
+            Rectangle {
+                id: searchStats
+
+                anchors.margins: 8
+                anchors.top: clearAll.bottom
+                anchors.left: parent.left
+                border.color: "#66FFFFFF"
+                border.width: 1
+                color: "black"
+                height: searchStatsTxt.height
+                opacity: h3Model.searchStatsText ? 0.9 : 0
+                radius: 7
+                width: searchStatsTxt.width
+                z: 100
+                visible: h3Model.searchStatsText !== ""
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 300 }
+                }
+
+                Text {
+                    id: searchStatsTxt
+                    font.pointSize: 14
+                    font.family: "Courier"
+                    color: "cyan"
+                    text: h3Model.searchStatsText ? " " + h3Model.searchStatsText + " " : ""
                 }
             }
             // Отображение объединённых полигонов стен лабиринта
@@ -614,11 +623,11 @@ ApplicationWindow {
                 delegate: MapPolygon {
                     id: mazePolyDelegate
                     path: modelData
-                    opacity: 0.3
-                    color: "black"
-                    border.color: "red"
-                    border.width: 2
-                    z: 1
+                    opacity: 0.85
+                    color: "pink"
+                    border.color: "black"
+                    border.width: 0.5
+                    z: 2
 
                     Component.onCompleted: {
                         map.addMapItem(mazePolyDelegate)
@@ -629,6 +638,19 @@ ApplicationWindow {
                 }
             }
 
+            // Круг границы допустимой области вокруг лабиринта
+            MapCircle {
+                id: mazeBoundaryCircle
+                center: h3Model.mazeCenter
+                radius: h3Model.mazeRadius
+                color: "transparent"
+                border.color: "red"
+                border.width: 3
+                opacity: 0.6
+                z: 1
+                referenceSurface: QtLocation.ReferenceSurface.Globe
+                visible: h3Model.mazeCenter.isValid && h3Model.mazeRadius > 0
+            }
 
             MapItemView {
                 id: targetCells
@@ -695,25 +717,6 @@ ApplicationWindow {
                                     id: textMetrics
                                     font: cellText.font
                                     text: cellText.text
-                                }
-                                MouseArea {
-                                    id: mouseRID
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    acceptedButtons: Qt.LeftButton | Qt.RightButton
-                                    cursorShape: Qt.CrossCursor
-
-                                    onClicked: event => {
-                                        if (event.button === Qt.LeftButton) {
-                                            centerAnimation.to = model.coordinate
-                                            zoomAnimation.to = model.zoom
-                                            centerAnimation.start()
-                                            zoomAnimation.start()
-                                        }
-                                        if (event.button === Qt.RightButton) {
-                                            targetsModel.remove(index)
-                                        }
-                                    }
                                 }
                             }
                         }
@@ -809,9 +812,68 @@ ApplicationWindow {
         }
     }
 
-    // Модель для хранения координат
-    ListModel {
-        id: coordinateListModel
+    // Компонент всплывающих уведомлений
+    Popup {
+        id: notificationPopup
 
+        property string notificationType: "info"
+        property string notificationMessage: ""
+
+        anchors.centerIn: parent
+        width: Math.min(parent.width * 0.8, 600)
+        height: notificationText.height + 40
+        modal: false
+        closePolicy: Popup.CloseOnPressOutside
+        z: 1000
+
+        background: Rectangle {
+            color: {
+                switch(notificationPopup.notificationType) {
+                    case "warning": return "#FFA500"  // Orange
+                    case "error": return "#FF4444"     // Red
+                    case "critical": return "#8B0000"  // Dark Red
+                    default: return "#4CAF50"          // Green
+                }
+            }
+            opacity: 0.95
+            radius: 8
+            border.color: Qt.darker(color, 1.2)
+            border.width: 2
+        }
+
+        contentItem: Text {
+            id: notificationText
+            text: notificationPopup.notificationMessage
+            color: "white"
+            font.pixelSize: 16
+            font.bold: true
+            wrapMode: Text.WordWrap
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            padding: 20
+        }
+
+        Timer {
+            id: closeTimer
+            interval: 3000
+            running: false
+            repeat: false
+            onTriggered: notificationPopup.close()
+        }
+
+        onOpened: {
+            closeTimer.start()
+        }
+    }
+
+    // Обработчик сигналов уведомлений от targetsModel
+    Connections {
+        target: targetsModel
+
+        function onShowNotification(message, type) {
+            notificationPopup.notificationMessage = message
+            notificationPopup.notificationType = type
+            notificationPopup.open()
+        }
     }
 }

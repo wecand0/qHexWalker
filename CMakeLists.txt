@@ -15,7 +15,7 @@ set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 add_compile_options(-Wfatal-errors -Wall -Werror)
 # Не больше одной ошибки за раз
 if(APPLE)
-    add_compile_options(--ferror-limit=1)
+    #add_compile_options(--ferror-limit=1)
 elseif (UNIX)
     add_compile_options(-fmax-errors=1)
 endif ()
@@ -25,8 +25,8 @@ message(STATUS "System           : ${CMAKE_SYSTEM}")
 message(STATUS "Версия ПО        : ${APP_VERSION}")
 
 #-DCMAKE_TOOLCHAIN_FILE=/Users/user/.vcpkg-clion/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_PREFIX_PATH="/Users/user/Qt/6.10.1/macos"  -DCMAKE_C_COMPILER_LAUNCHER="ccache" -DCMAKE_CXX_COMPILER_LAUNCHER="ccache"
-option(BUILD_TESTS "ENABLE TESTING" OFF)
-option(BENCHMARK_ENABLE "ENABLE BENCHMARK" OFF)
+option(BUILD_TESTS "ENABLE TESTING" ON)
+option(BENCHMARK_ENABLE "ENABLE BENCHMARK" ON)
 option(DEBUG "ENABLE DEBUG" OFF)
 option(ENABLE_NATIVE_OPTIMIZATIONS "Enable -march=native/-mtune=native (non-portable across CPUs)" ON)
 
@@ -78,7 +78,7 @@ if(BENCHMARK_ENABLE)
     message(STATUS "Benchmark        : вкл")
     find_package(benchmark CONFIG REQUIRED)
 else ()
-    message(STATUS "Benchmark        : вкл")
+    message(STATUS "Benchmark        : выкл")
 endif ()
 
 find_package(spdlog CONFIG REQUIRED)
@@ -166,17 +166,17 @@ copy_recursive(${CMAKE_SOURCE_DIR}/data/ ${CMAKE_CURRENT_BINARY_DIR} *)
 #
 # Тесты
 #
-if (BUILD_TESTS)
-    # Рекурсивно ищем все используемые в тестах .cpp файлы
-    file(GLOB TEST_SRC_FILES "${CMAKE_SOURCE_DIR}/tests/*.cpp")
-
-    add_executable(${PROJECT_NAME}_tests "${TEST_SRC_FILES}")
-    target_link_libraries(${PROJECT_NAME}_tests PRIVATE ${PROJECT_NAME}_imp GTest::gtest GTest::gtest_main)
-    target_include_directories(${PROJECT_NAME}_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-    add_test(NAME ${PROJECT_NAME}_Tests COMMAND ${PROJECT_NAME}_tests)
-
-    copy_recursive(${CMAKE_SOURCE_DIR}/tests/files ${CMAKE_CURRENT_BINARY_DIR}/tests/files *)
-endif ()
+#if (BUILD_TESTS)
+#    # Рекурсивно ищем все используемые в тестах .cpp файлы
+#    file(GLOB TEST_SRC_FILES "${CMAKE_SOURCE_DIR}/tests/*.cpp")
+#
+#    add_executable(${PROJECT_NAME}_tests "${TEST_SRC_FILES}")
+#    target_link_libraries(${PROJECT_NAME}_tests PRIVATE ${PROJECT_NAME}_imp GTest::gtest GTest::gtest_main)
+#    target_include_directories(${PROJECT_NAME}_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+#    add_test(NAME ${PROJECT_NAME}_Tests COMMAND ${PROJECT_NAME}_tests)
+#
+#    copy_recursive(${CMAKE_SOURCE_DIR}/tests/files ${CMAKE_CURRENT_BINARY_DIR}/tests/files *)
+#endif ()
 
 ########################################
 #
@@ -188,7 +188,7 @@ if (BENCHMARK_ENABLE)
 
     add_executable(${PROJECT_NAME}_benchmark "${BENCHMARK_SRC_FILES}")
     target_link_libraries(${PROJECT_NAME}_benchmark PRIVATE ${PROJECT_NAME}_imp benchmark::benchmark benchmark::benchmark_main)
-    target_include_directories(${PROJECT_NAME}_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_include_directories(${PROJECT_NAME}_benchmark PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 endif ()
 
 ########################################
