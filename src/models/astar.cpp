@@ -25,27 +25,8 @@ std::vector<H3Index> H3AStar::findShortestPath(const H3Index start, const H3Inde
     const int startRes = getResolution(start);
     const int endRes = getResolution(end);
 
-    H3Index startRes3 = startRes != 3 ? cellToParentRes3(start) : start;
-    H3Index endRes3 = endRes != 3 ? cellToParentRes3(end) : end;
-
-    // H3Index startRes3 = H3_NULL;
-    // H3Index endRes3  = H3_NULL;
-    //
-    // if (startRes < 3) {
-    //     startRes3 = cellToParentRes3(start);
-    // }else if (startRes > 3) {
-    //     startRes3 = cellToChildRes3(start);
-    // }else {
-    //     startRes3 = start;
-    // }
-    //
-    // if (endRes < 3) {
-    //     endRes3 = cellToParentRes3(start);
-    // }else if (endRes > 3) {
-    //     endRes3 = cellToChildRes3(start);
-    // }else {
-    //     endRes3 = end;
-    // }
+    const H3Index startRes3 = startRes != 3 ? cellToParentRes3(start) : start;
+    const H3Index endRes3 = endRes != 3 ? cellToParentRes3(end) : end;
 
     if (startRes3 == H3_NULL || endRes3 == H3_NULL) {
         throw std::domain_error("Error converting to resolution 3");
@@ -110,8 +91,8 @@ std::vector<H3Index> H3AStar::findPathAtResolution3(const H3Index start, const H
     // Попеременный поиск с двух сторон
     while (!forwardOpen.empty() && !backwardOpen.empty()) {
         // Проверка терминации: если лучший путь уже найден
-        double forwardMin = forwardOpen.top().fScore;
-        double backwardMin = backwardOpen.top().fScore;
+        const double forwardMin = forwardOpen.top().fScore;
+        const double backwardMin = backwardOpen.top().fScore;
 
         if (forwardMin + backwardMin >= bestPathCost) {
             break;  // Оптимальный путь найден
@@ -234,7 +215,7 @@ std::vector<H3Index> H3AStar::findPathAtResolution3(const H3Index start, const H
     return {};
 }
 
-std::vector<H3Index> H3AStar::findLocalPathAtResolution(H3Index start, H3Index end, H3Index limitParent) {
+std::vector<H3Index> H3AStar::findLocalPathAtResolution(H3Index start, H3Index end, H3Index limitParent) const {
     if (start == end) {
         return {start};
     }
@@ -285,8 +266,8 @@ std::vector<H3Index> H3AStar::findLocalPathAtResolution(H3Index start, H3Index e
                 continue;
             }
 
-            double edgeDistance = getDistanceBetweenCells(current.cell, neighbor);
-            double tentativeGScore = gScores[current.cell] + edgeDistance;
+            const double edgeDistance = getDistanceBetweenCells(current.cell, neighbor);
+            const double tentativeGScore = gScores[current.cell] + edgeDistance;
 
             if (!gScores.contains(neighbor) || tentativeGScore < gScores[neighbor]) {
                 previous[neighbor] = current.cell;
@@ -352,7 +333,7 @@ std::vector<H3Index> H3AStar::refineEndSegmentGradual(const H3Index prevInPath, 
     return segment;
 }
 std::vector<H3Index> H3AStar::refineStartSegmentGradual(const H3Index originalStart, const H3Index nextInPath,
-                                                        const int startRes) {
+                                                        const int startRes) const {
     std::vector<H3Index> segment;
     segment.emplace_back(originalStart);
 
@@ -558,7 +539,7 @@ H3Index H3AStar::cellToParentRes3(const H3Index index) {
     }
     return indexRes3;
 }
-H3Index H3AStar::cellToChildRes3(H3Index index) {
+H3Index H3AStar::cellToChildRes3(const H3Index index) {
     H3Index indexRes3 = H3_NULL;
     if (cellToCenterChild(index, 3, &indexRes3) != E_SUCCESS) {
         return H3_NULL;

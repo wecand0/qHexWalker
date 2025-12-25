@@ -68,12 +68,12 @@ void H3TargetsModel::compute() {
     }
     emit onCompute(indexes);
 }
-void H3TargetsModel::move(int from, int to) {
+void H3TargetsModel::move(const int from, const int to) {
     if (from < 0 || from >= cells_.size() || to < 0 || to >= cells_.size() || from == to)
         return;
 
     // Правильно рассчитываем destinationRow для beginMoveRows
-    const int destinationRow = (to > from) ? (to + 1) : to;
+    const int destinationRow = to > from ? to + 1 : to;
 
     isClearing_ = true;
     emit clearingStarted();
@@ -158,13 +158,9 @@ void H3TargetsModel::requestCell(const quint8 mapZoom, const QGeoCoordinate &coo
         return;
     }
     // Проверка: не находится ли точка за пределами допустимой области
-    SPDLOG_CRITICAL("{} {} {}", mazeRadius_, mazeCenter_.isValid(), mazeRadius_);
     if (mazeRadius_ > 0.0 && mazeCenter_.isValid()) {
-        const double distance = mazeCenter_.distanceTo(coordinate);
-        if (distance > mazeRadius_) {
-            const QString message = QString("Cannot add target: point is outside the allowed area!");
-            spdlog::warn("Cannot add target at ({}, {}): distance {} m exceeds radius {} m", coordinate.latitude(),
-                         coordinate.longitude(), distance, mazeRadius_);
+        if (const double distance = mazeCenter_.distanceTo(coordinate); distance > mazeRadius_) {
+            const auto message = QString("Cannot add target: point is outside the allowed area!");
             emit showNotification(message, "warning");
             return;
         }
@@ -180,15 +176,13 @@ void H3TargetsModel::requestCell(const quint8 mapZoom, const QGeoCoordinate &coo
 
     // Проверка: не пытается ли пользователь добавить точку на стену
     if (mazeWalls_.contains(h3Index)) {
-        const QString message = QString("Cannot add target: this cell is a wall!");
-        spdlog::warn("Cannot add target at 0x{:x}: this cell is a wall!", h3Index);
+        const auto message = QString("Cannot add target: this cell is a wall!");
         emit showNotification(message, "warning");
         return;
     }
 
     auto comp = [h3Index](const H3Target *cell) { return cell->index() == h3Index; };
-    const auto isUnique = std::ranges::find_if(cells_, comp);
-    if (isUnique != cells_.end()) {
+    if (const auto isUnique = std::ranges::find_if(cells_, comp); isUnique != cells_.end()) {
         return;
     }
 
@@ -238,7 +232,7 @@ void H3TargetsModel::clearAllCells() {
     emit clearingFinished();
 }
 
-bool H3TargetsModel::isCoordinateTargetValid(quint8 zoom, const QGeoCoordinate &coordinate) const {
+bool H3TargetsModel::isCoordinateTargetValid(const quint8 zoom, const QGeoCoordinate &coordinate) const {
     if (!coordinate.isValid()) {
         return false;
     }

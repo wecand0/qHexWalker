@@ -70,14 +70,13 @@ struct Helper {
 
         // Находим общие вершины (должно быть ровно 2 для соседних шестиугольников)
         std::vector<LatLng> sharedVertices;
-        constexpr double EPSILON = 1e-9;  // Порог для сравнения координат
 
         for (int i = 0; i < boundary1.numVerts; ++i) {
             for (int j = 0; j < boundary2.numVerts; ++j) {
                 const double latDiff = std::abs(boundary1.verts[i].lat - boundary2.verts[j].lat);
                 const double lngDiff = std::abs(boundary1.verts[i].lng - boundary2.verts[j].lng);
 
-                if (latDiff < EPSILON && lngDiff < EPSILON) {
+                if (constexpr double EPSILON = 1e-9; latDiff < EPSILON && lngDiff < EPSILON) {
                     sharedVertices.push_back(boundary1.verts[i]);
                     break;
                 }

@@ -86,8 +86,7 @@ void H3MazeAdapter::generateMaze(const double lat, const double lon, const int k
         if (const auto err2 = cellToLatLng(wallCell, &wallLatLng); err2 != E_SUCCESS) {
             continue;
         }
-        const double distance = greatCircleDistanceM(&centerLatLng, &wallLatLng);
-        if (distance > maxDistance) {
+        if (const double distance = greatCircleDistanceM(&centerLatLng, &wallLatLng); distance > maxDistance) {
             maxDistance = distance;
         }
     }

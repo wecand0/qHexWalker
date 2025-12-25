@@ -62,7 +62,7 @@ void H3Worker::doWork() {
         // Вычисляем время поиска
         auto endTime = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
-        double timeMs = duration.count() / 1000.0;
+        const double timeMs = duration.count() / 1000.0;
 
         // Эмитим статистику
         emit searchStats(exploredCellsCount_.load(), timeMs, totalPathLength);
@@ -100,7 +100,7 @@ void H3Worker::setWalls(const std::unordered_set<H3Index> &mazeWalls) {
     spdlog::info("H3Worker: Walls updated for A* algorithm, {} wall cells", walls.size());
 }
 
-void H3Worker::onAStarNewCell(H3Index cell) {
+void H3Worker::onAStarNewCell(const H3Index cell) {
     // Увеличиваем счётчик исследованных ячеек для статистики
     exploredCellsCount_.fetch_add(1, std::memory_order_relaxed);
 
@@ -113,7 +113,7 @@ void H3Worker::onAStarNewCell(H3Index cell) {
     }
 
     // Конвертируем H3Index в полигон
-    auto polygon = Helper::indexToPolygon(cell);
+    const auto polygon = Helper::indexToPolygon(cell);
     if (!polygon.has_value()) {
         return;
     }

@@ -108,10 +108,7 @@ static void BM_MazeGeneration_Parametric(benchmark::State &state) {
 
     state.SetComplexityN(radius);
 }
-BENCHMARK(BM_MazeGeneration_Parametric)
-    ->RangeMultiplier(2)
-    ->Range(5, 100)
-    ->Complexity();
+BENCHMARK(BM_MazeGeneration_Parametric)->RangeMultiplier(2)->Range(5, 100)->Complexity();
 
 // Генерация с входом и выходом
 static void BM_MazeGeneration_WithEntrances(benchmark::State &state) {
@@ -126,17 +123,14 @@ static void BM_MazeGeneration_WithEntrances(benchmark::State &state) {
 
     for (const auto &_ : state) {
         try {
-             auto result = generator.generateMazeWithEntrances(centerCell, radius);
+            auto result = generator.generateMazeWithEntrances(centerCell, radius);
             benchmark::DoNotOptimize(result);
-        }catch (const std::exception& e) {
+        } catch (const std::exception &e) {
             state.SkipWithError(e.what());
         }
     }
 }
-BENCHMARK(BM_MazeGeneration_WithEntrances)
-    ->Arg(10)
-    ->Arg(30)
-    ->Arg(50);
+BENCHMARK(BM_MazeGeneration_WithEntrances)->Arg(10)->Arg(30)->Arg(50);
 
 // ========================================
 // A* with Obstacles Benchmarks
@@ -314,7 +308,7 @@ static void BM_AStar_VariableObstacles(benchmark::State &state) {
     latLngToCell(&ll, 3, &centerCell);
 
     const int radius = 20;
-    const int obstaclePercent = state.range(0); // процент препятствий (0-90)
+    const int obstaclePercent = state.range(0);  // процент препятствий (0-90)
 
     // Генерируем лабиринт
     H3MazeGenerator generator(nullptr);
@@ -325,7 +319,8 @@ static void BM_AStar_VariableObstacles(benchmark::State &state) {
     int count = 0;
     int targetCount = (allWalls.size() * obstaclePercent) / 100;
     for (const auto &wall : allWalls) {
-        if (count >= targetCount) break;
+        if (count >= targetCount)
+            break;
         walls.insert(wall);
         count++;
     }
@@ -366,10 +361,10 @@ static void BM_AStar_VariableObstacles(benchmark::State &state) {
     state.SetLabel("obstacles_" + std::to_string(obstaclePercent) + "%");
 }
 BENCHMARK(BM_AStar_VariableObstacles)
-    ->Arg(0)   // Без препятствий
-    ->Arg(25)  // 25% препятствий
-    ->Arg(50)  // 50% препятствий
-    ->Arg(75); // 75% препятствий
+    ->Arg(0)    // Без препятствий
+    ->Arg(25)   // 25% препятствий
+    ->Arg(50)   // 50% препятствий
+    ->Arg(75);  // 75% препятствий
 
 // ========================================
 // Combined Benchmarks
@@ -416,10 +411,7 @@ static void BM_MazeGenerationAndPathfinding(benchmark::State &state) {
         }
     }
 }
-BENCHMARK(BM_MazeGenerationAndPathfinding)
-    ->Arg(10)
-    ->Arg(30)
-    ->Arg(50);
+BENCHMARK(BM_MazeGenerationAndPathfinding)->Arg(10)->Arg(30)->Arg(50);
 
 // Множественные запросы поиска пути в одном лабиринте
 static void BM_AStar_MultipleQueries(benchmark::State &state) {
@@ -470,10 +462,6 @@ static void BM_AStar_MultipleQueries(benchmark::State &state) {
 
     state.SetItemsProcessed(state.iterations() * numQueries);
 }
-BENCHMARK(BM_AStar_MultipleQueries)
-    ->Arg(1)
-    ->Arg(5)
-    ->Arg(10)
-    ->Arg(20);
+BENCHMARK(BM_AStar_MultipleQueries)->Arg(1)->Arg(5)->Arg(10)->Arg(20);
 
 BENCHMARK_MAIN();

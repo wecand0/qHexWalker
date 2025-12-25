@@ -493,15 +493,6 @@ ApplicationWindow {
                 }
             }
             Shortcut {
-                sequence: "z"
-                onActivated: {
-                    centerAnimation.to = mapMouseArea.currentCoordinate
-                    zoomAnimation.to = 3
-                    centerAnimation.start()
-                    zoomAnimation.start()
-                }
-            }
-            Shortcut {
                 sequence: "a"
                 onActivated: {
                     targetsModel.requestCell(map.zoomLevel.toFixed(1), mapMouseArea.currentCoordinate)
@@ -586,11 +577,42 @@ ApplicationWindow {
                     text: " Press 'r' to clear all cells "
                 }
             }
+            Shortcut {
+                sequence: "z"
+                onActivated: {
+                    centerAnimation.to = mapMouseArea.currentCoordinate
+                    zoomAnimation.to = 3
+                    centerAnimation.start()
+                    zoomAnimation.start()
+                }
+            }
+            Rectangle {
+                id: rezetZoom
+
+                anchors.margins: 8
+                anchors.top: clearAll.bottom
+                anchors.left: parent.left
+                border.color: "#66FFFFFF"
+                border.width: 1
+                color: "black"
+                height: rezetZoomTxt.height
+                opacity: 1
+                radius: 7
+                width: rezetZoomTxt.width
+                z: 100
+
+                Text {
+                    id: rezetZoomTxt
+                    font.pointSize: 20
+                    color: "white"
+                    text: " Press 'z' to reset zoom "
+                }
+            }
             Rectangle {
                 id: searchStats
 
                 anchors.margins: 8
-                anchors.top: clearAll.bottom
+                anchors.top: rezetZoom.bottom
                 anchors.left: parent.left
                 border.color: "#66FFFFFF"
                 border.width: 1

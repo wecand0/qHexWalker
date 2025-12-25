@@ -1,7 +1,3 @@
-//
-// Created by user on 02/12/2025.
-//
-
 #ifndef Q_HEX_WALKER_LOGGER_H
 #define Q_HEX_WALKER_LOGGER_H
 

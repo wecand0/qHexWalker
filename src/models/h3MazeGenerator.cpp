@@ -1,7 +1,6 @@
 #include "h3MazeGenerator.h"
 
 #include <queue>
-#include <ranges>
 
 H3MazeGenerator::H3MazeGenerator(QObject *parent) : QObject(parent), rng_(std::random_device{}()) {}
 
