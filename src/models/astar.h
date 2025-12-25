@@ -4,7 +4,6 @@
 class H3AStar final : public QObject {
     Q_OBJECT
     Q_DISABLE_COPY_MOVE(H3AStar)
-
 public:
     explicit H3AStar(QObject *parent = nullptr);
     ~H3AStar() override;
