@@ -5,7 +5,12 @@
 using namespace H3_VIEWER;
 using namespace std::chrono_literals;
 
-H3Worker::H3Worker(QObject *parent) : QObject(parent) { astar_ = new H3AStar(this); }
+H3Worker::H3Worker(QObject *parent) : QObject(parent) {
+    astar_ = new H3AStar(this);
+
+    // Подключаем сигнал A* для визуализации процесса поиска
+    connect(astar_, &H3AStar::newCell, this, &H3Worker::onAStarNewCell, Qt::DirectConnection);
+}
 
 H3Worker::~H3Worker() = default;
 
@@ -28,12 +33,20 @@ void H3Worker::doWork() {
             continue;
         }
 
+        // Сброс счётчика и засекаем время
+        exploredCellsCount_.store(0);
+        auto startTime = std::chrono::high_resolution_clock::now();
+
         H3Index prevIndex = req.indexes.front();
         std::vector<H3Index> path;
+        int totalPathLength = 0;
+
         for (size_t indexId = 1; indexId < req.indexes.size(); indexId++) {
             try {
                 path = astar_->findShortestPath(prevIndex, req.indexes.at(indexId));
                 prevIndex = req.indexes.at(indexId);
+                totalPathLength += static_cast<int>(path.size());
+
                 for (const auto index : path) {
                     auto childPolygon = Helper::indexToPolygon(index);
                     if (!childPolygon.has_value()) {
@@ -45,6 +58,15 @@ void H3Worker::doWork() {
                 spdlog::warn("{}", e.what());
             }
         }
+
+        // Вычисляем время поиска
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
+        double timeMs = duration.count() / 1000.0;
+
+        // Эмитим статистику
+        emit searchStats(exploredCellsCount_.load(), timeMs, totalPathLength);
+
         {
             std::lock_guard lk(mutex_);
             isRequested.store(false);
@@ -76,4 +98,26 @@ void H3Worker::setWalls(const std::unordered_set<H3Index> &mazeWalls) {
     }
 
     spdlog::info("H3Worker: Walls updated for A* algorithm, {} wall cells", walls.size());
+}
+
+void H3Worker::onAStarNewCell(H3Index cell) {
+    // Увеличиваем счётчик исследованных ячеек для статистики
+    exploredCellsCount_.fetch_add(1, std::memory_order_relaxed);
+
+    // Throttling: показываем каждую N-ую ячейку для плавной анимации
+    static int counter = 0;
+    static constexpr int THROTTLE_FACTOR = 10;  // Показываем каждую 10-ю ячейку
+
+    if (++counter % THROTTLE_FACTOR != 0) {
+        return;
+    }
+
+    // Конвертируем H3Index в полигон
+    auto polygon = Helper::indexToPolygon(cell);
+    if (!polygon.has_value()) {
+        return;
+    }
+
+    // Эмитим сигнал с флагом isSearching=false (исследуемая ячейка, не финальный путь)
+    emit cellComputed(getResolution(cell), cell, polygon.value(), false);
 }

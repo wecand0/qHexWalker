@@ -97,6 +97,7 @@ void H3TargetsModel::move(int from, int to) {
 
     isClearing_ = false;
     emit clearingFinished();
+    compute();
 }
 
 qsizetype H3TargetsModel::remove(const int row) {
@@ -135,6 +136,7 @@ qsizetype H3TargetsModel::remove(const int row) {
     }
     emit onRemoveCell(indexes);
 
+    compute();
     return cells_.size();
 }
 
@@ -155,11 +157,32 @@ void H3TargetsModel::requestCell(const quint8 mapZoom, const QGeoCoordinate &coo
         spdlog::error("Выбран недопустимый зум под разрешение {}", err.what());
         return;
     }
+    // Проверка: не находится ли точка за пределами допустимой области
+    SPDLOG_CRITICAL("{} {} {}", mazeRadius_, mazeCenter_.isValid(), mazeRadius_);
+    if (mazeRadius_ > 0.0 && mazeCenter_.isValid()) {
+        const double distance = mazeCenter_.distanceTo(coordinate);
+        if (distance > mazeRadius_) {
+            const QString message = QString("Cannot add target: point is outside the allowed area!");
+            spdlog::warn("Cannot add target at ({}, {}): distance {} m exceeds radius {} m", coordinate.latitude(),
+                         coordinate.longitude(), distance, mazeRadius_);
+            emit showNotification(message, "warning");
+            return;
+        }
+    }
+
     H3Index h3Index = H3_NULL;
     const LatLng ll{.lat = degsToRads(coordinate.latitude()), .lng = degsToRads(coordinate.longitude())};
     if (const auto errIdx = latLngToCell(&ll, res, &h3Index); errIdx != E_SUCCESS || h3Index == H3_NULL) {
         spdlog::warn("Impossible to convert this lat:{} lng:{} coordinate to H3Index {}", coordinate.latitude(),
                      coordinate.longitude(), errIdx);
+        return;
+    }
+
+    // Проверка: не пытается ли пользователь добавить точку на стену
+    if (mazeWalls_.contains(h3Index)) {
+        const QString message = QString("Cannot add target: this cell is a wall!");
+        spdlog::warn("Cannot add target at 0x{:x}: this cell is a wall!", h3Index);
+        emit showNotification(message, "warning");
         return;
     }
 
@@ -224,4 +247,16 @@ bool H3TargetsModel::isCoordinateTargetValid(quint8 zoom, const QGeoCoordinate &
     }
 
     return true;
+}
+
+void H3TargetsModel::setMazeWalls(const std::unordered_set<H3Index> &walls) {
+    mazeWalls_ = walls;
+    spdlog::info("H3TargetsModel: Maze walls updated, {} wall cells", mazeWalls_.size());
+}
+
+void H3TargetsModel::setMazeBounds(const QGeoCoordinate &center, const double radiusMeters) {
+    mazeCenter_ = center;
+    mazeRadius_ = radiusMeters;
+    spdlog::info("H3TargetsModel: Maze bounds set - center ({}, {}), radius {} meters", center.latitude(),
+                 center.longitude(), radiusMeters);
 }

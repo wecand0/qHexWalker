@@ -75,6 +75,7 @@ void H3Model::Init() {
     connect(worker_, &H3_VIEWER::H3Worker::cellsComputed, this, &H3Model::onCellsComputed, Qt::QueuedConnection);
     connect(worker_, &H3_VIEWER::H3Worker::mazePolygonsComputed, this, &H3Model::onMazePolygonsComputed,
             Qt::QueuedConnection);
+    connect(worker_, &H3_VIEWER::H3Worker::searchStats, this, &H3Model::onSearchStats, Qt::QueuedConnection);
     thread_->start();
 
     // Создаем и настраиваем maze adapter
@@ -93,9 +94,32 @@ void H3Model::Init() {
         mazeAdapter_, &H3MazeAdapter::mazeWallsGenerated, this,
         [this](const std::unordered_set<H3Index> &walls) { worker_->setWalls(walls); }, Qt::QueuedConnection);
 
+    // Пробрасываем сигнал mazeWallsGenerated наружу для targetsModel
+    connect(mazeAdapter_, &H3MazeAdapter::mazeWallsGenerated, this, &H3Model::mazeWallsGenerated,
+            Qt::QueuedConnection);
+
+    // Получаем вычисленный радиус лабиринта и передаем дальше
+    connect(mazeAdapter_, &H3MazeAdapter::mazeRadiusComputed, this,
+            [this](const QGeoCoordinate &center, double radiusMeters) {
+                mazeCenter_ = center;
+                mazeRadius_ = radiusMeters;
+
+                emit mazeCenterChanged();
+                emit mazeRadiusChanged();
+                emit mazeBoundsGenerated(mazeCenter_, mazeRadius_);
+
+                spdlog::info("H3Model: Maze bounds received - center ({}, {}), radius {} meters", center.latitude(),
+                             center.longitude(), radiusMeters);
+            },
+            Qt::QueuedConnection);
+
     // Запускаем генерацию лабиринта асинхронно
     try {
-        mazeAdapter_->generateMazeAsync(0.0, 0.0, 50);
+        const double mazeLat = 0.0;
+        const double mazeLon = 0.0;
+        const int kRingRadius = 50;
+
+        mazeAdapter_->generateMazeAsync(mazeLat, mazeLon, kRingRadius);
     } catch (const std::exception &e) {
         spdlog::critical("{}", e.what());
     }
@@ -180,7 +204,12 @@ void H3Model::onCellComputed(const quint8 res, const H3Index index, const QVaria
     if (isClearing_) {
         return;
     }
-    addCell(res, index, polygon, isSearching ? getColorForResolution(res) : "gray");
+
+    // isSearching=false: A* исследует ячейку (светло-голубой)
+    // isSearching=true: финальный путь (цвет по разрешению)
+    QColor cellColor = isSearching ? QColor(getColorForResolution(res)) : QColor(100, 200, 255, 120);  // Cyan для поиска
+
+    addCell(res, index, polygon, cellColor);
 }
 
 void H3Model::requestCells(const std::vector<H3Index> &indexes) {
@@ -245,4 +274,14 @@ void H3Model::onMazePolygonsComputed(const std::vector<QVariantList> &polygons) 
 
     spdlog::info("Maze polygons updated: {} polygons", mazePolygons_.size());
     emit mazePolygonsChanged();
+}
+
+void H3Model::onSearchStats(int exploredCells, double timeMs, int pathLength) {
+    searchStatsText_ = QString("Explored: %1 cells | Time: %2 ms | Path: %3 cells")
+                           .arg(exploredCells)
+                           .arg(timeMs, 0, 'f', 2)
+                           .arg(pathLength);
+
+    spdlog::info("Search stats: {} explored, {:.2f} ms, {} path length", exploredCells, timeMs, pathLength);
+    emit searchStatsChanged();
 }

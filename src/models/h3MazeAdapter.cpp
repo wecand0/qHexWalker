@@ -73,10 +73,35 @@ void H3MazeAdapter::generateMaze(const double lat, const double lon, const int k
         walls.insert(cellId);
     }
 
+    // Вычисляем максимальный радиус лабиринта
+    LatLng centerLatLng;
+    cellToLatLng(centerCell, &centerLatLng);
+    double maxDistance = 0.0;
+
+    for (const auto &wallCell : walls) {
+        if (!isValidCell(wallCell)) {
+            continue;
+        }
+        LatLng wallLatLng;
+        if (const auto err2 = cellToLatLng(wallCell, &wallLatLng); err2 != E_SUCCESS) {
+            continue;
+        }
+        const double distance = greatCircleDistanceM(&centerLatLng, &wallLatLng);
+        if (distance > maxDistance) {
+            maxDistance = distance;
+        }
+    }
+
+    // Добавляем буфер 250'000 м, т.к. Лабиринт неидеальный круг из-за h3 rings
+    const double radiusWithBuffer = maxDistance + 250000;
+    const QGeoCoordinate center(lat, lon);
+
+    spdlog::info("Maze radius calculated: max distance = {} m, with buffer = {} m", maxDistance, radiusWithBuffer);
+
     // Marshal results back to GUI thread
     QMetaObject::invokeMethod(
         this,
-        [this, walls] {
+        [this, walls, center, radiusWithBuffer] {
             // Визуализация: объединяем все стены в полигоны и отправляем
             if (const auto mergedPolygons = cellsToMergedPolygons(walls); !mergedPolygons.empty()) {
                 emit mazePolygonsComputed(mergedPolygons);
@@ -85,6 +110,10 @@ void H3MazeAdapter::generateMaze(const double lat, const double lon, const int k
 
             // Передаем стены для A* алгоритма
             emit mazeWallsGenerated(walls);
+
+            // Передаем центр и радиус лабиринта
+            emit mazeRadiusComputed(center, radiusWithBuffer);
+
             spdlog::info("Maze generation complete: {} wall cells", walls.size());
         },
         Qt::QueuedConnection);

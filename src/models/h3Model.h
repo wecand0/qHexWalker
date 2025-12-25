@@ -17,6 +17,9 @@ class H3Model final : public QAbstractListModel {
     Q_DISABLE_COPY_MOVE(H3Model)
     Q_PROPERTY(QVariantList coordinates READ coordinates NOTIFY coordinatesChanged)
     Q_PROPERTY(QList<QVariantList> mazePolygons READ mazePolygons NOTIFY mazePolygonsChanged)
+    Q_PROPERTY(QString searchStatsText READ searchStatsText NOTIFY searchStatsChanged)
+    Q_PROPERTY(QGeoCoordinate mazeCenter READ mazeCenter NOTIFY mazeCenterChanged)
+    Q_PROPERTY(double mazeRadius READ mazeRadius NOTIFY mazeRadiusChanged)
 public:
     enum Roles { ResRole = Qt::UserRole + 1, IndexRole, CellColor, PathRole };
 
@@ -34,10 +37,17 @@ public:
 
     [[nodiscard]] QList<QVariantList> mazePolygons() const noexcept { return mazePolygons_; }
 
+    [[nodiscard]] QString searchStatsText() const noexcept { return searchStatsText_; }
+
+    [[nodiscard]] QGeoCoordinate mazeCenter() const noexcept { return mazeCenter_; }
+
+    [[nodiscard]] double mazeRadius() const noexcept { return mazeRadius_; }
+
 private slots:
     void onCellsComputed(const QVariantList &list);
     void onCellComputed(quint8 res, H3Index index, const QVariantList &polygon, bool isSearching);
     void onMazePolygonsComputed(const std::vector<QVariantList> &polygons);
+    void onSearchStats(int exploredCells, double timeMs, int pathLength);
 
 public:
     void Init();
@@ -51,6 +61,11 @@ signals:
     void clearingFinished();
     void coordinatesChanged();
     void mazePolygonsChanged();
+    void searchStatsChanged();
+    void mazeWallsGenerated(const std::unordered_set<H3Index> &walls);
+    void mazeCenterChanged();
+    void mazeRadiusChanged();
+    void mazeBoundsGenerated(const QGeoCoordinate &center, double radiusMeters);
 
 private:
     [[nodiscard]] std::optional<H3Cell *> findCellByID(quint64 id) const;
@@ -68,6 +83,9 @@ private:
     QList<H3Cell *> pathCells_;
     QVariantList coordinates_;
     QList<QVariantList> mazePolygons_;  // Список объединённых полигонов стен
+    QString searchStatsText_;           // Текст статистики поиска
+    QGeoCoordinate mazeCenter_;         // Центр лабиринта
+    double mazeRadius_{0.0};            // Радиус допустимой области в метрах
 
     const uint8_t minZoom_c{3};
     const uint8_t maxZoom_c{15};

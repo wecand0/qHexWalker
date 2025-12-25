@@ -38,6 +38,10 @@ public slots:
     // Установить стены лабиринта для A* алгоритма
     void setWalls(const std::unordered_set<H3Index> &mazeWalls);
 
+private slots:
+    // Обработка новой ячейки из A* (для анимации поиска)
+    void onAStarNewCell(H3Index cell);
+
 signals:
     void finished();
     // Результат пересчета: разрешение, идентификатор H3 и полигон ячейки
@@ -48,6 +52,9 @@ signals:
     // Сигнал для отправки нескольких объединённых полигонов (стены лабиринта)
     void mazePolygonsComputed(const std::vector<QVariantList> &polygons);
 
+    // Статистика поиска пути: количество исследованных ячеек, время (мс), длина пути
+    void searchStats(int exploredCells, double timeMs, int pathLength);
+
 private:
     std::unordered_set<H3Index> walls;
     H3AStar *astar_{};
@@ -56,6 +63,9 @@ private:
     std::mutex mutex_;
     std::condition_variable cv_;
     PendingRequest pending_;
+
+    // Счётчик исследованных ячеек для статистики
+    std::atomic<int> exploredCellsCount_{0};
 };
 }  // namespace H3_VIEWER
 

@@ -19,26 +19,29 @@ public:
     [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
     [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
 
-private slots:
-    // void onCellAdded(quint8 res, H3Index index, const QVariantList &polygon, bool isSearching);
-
 public slots:
     Q_INVOKABLE void compute();
-    Q_INVOKABLE void move(int from, int to);  // <-- обязательно!
+    Q_INVOKABLE void move(int from, int to);
     Q_INVOKABLE qsizetype remove(int row);
     Q_INVOKABLE void requestCell(quint8 mapZoom, const QGeoCoordinate &coordinate);
     Q_INVOKABLE void clearAllCells();
+    void setMazeWalls(const std::unordered_set<H3Index> &walls);
+    void setMazeBounds(const QGeoCoordinate &center, double radiusMeters);
 
 signals:
     void onRemoveCell(const std::vector<H3Index> &indexes);
     void onCompute(const std::vector<H3Index> &indexes);
     void clearingStarted();
     void clearingFinished();
+    void showNotification(const QString &message, const QString &type);
 
 private:
     [[nodiscard]] bool isCoordinateTargetValid(quint8 zoom, const QGeoCoordinate &coordinate) const;
 
     QList<H3Target *> cells_;
+    std::unordered_set<H3Index> mazeWalls_;  // Стены лабиринта
+    QGeoCoordinate mazeCenter_;              // Центр лабиринта
+    double mazeRadius_{0.0};                 // Радиус допустимой области в метрах
 
     const uint8_t minZoom_c{3};
     const uint8_t maxZoom_c{15};

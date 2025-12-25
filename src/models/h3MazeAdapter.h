@@ -19,6 +19,9 @@ signals:
     // Сигнал для передачи стен в A* алгоритм
     void mazeWallsGenerated(const std::unordered_set<H3Index> &walls);
 
+    // Сигнал для передачи центра и радиуса лабиринта
+    void mazeRadiusComputed(const QGeoCoordinate &center, double radiusMeters);
+
 private:
     // Основная функция генерации (вызывается в отдельном потоке)
     void generateMaze(double lat, double lon, int kRingRadius);

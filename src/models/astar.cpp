@@ -68,53 +68,166 @@ std::vector<H3Index> H3AStar::findShortestPath(const H3Index start, const H3Inde
 }
 
 std::vector<H3Index> H3AStar::findPathAtResolution3(const H3Index start, const H3Index end, const LatLng &endCoord) {
-    std::priority_queue<Node, std::vector<Node>, std::greater<>> openSet;
-    std::unordered_map<H3Index, double, H3IndexHash> gScores;
-    std::unordered_map<H3Index, H3Index, H3IndexHash> previous;
-    std::unordered_set<H3Index, H3IndexHash> closedSet;
+    // Bidirectional A*: поиск одновременно с двух сторон
 
-    gScores.reserve(300);
-    previous.reserve(300);
-    closedSet.reserve(300);
+    // Forward search (от start к end)
+    std::priority_queue<Node, std::vector<Node>, std::greater<>> forwardOpen;
+    std::unordered_map<H3Index, double, H3IndexHash> forwardG;
+    std::unordered_map<H3Index, H3Index, H3IndexHash> forwardPrev;
+    std::unordered_set<H3Index, H3IndexHash> forwardClosed;
 
-    gScores[start] = 0.0;
-    openSet.emplace(Node{start, 0.0, heuristic(start, endCoord)});
+    // Backward search (от end к start)
+    std::priority_queue<Node, std::vector<Node>, std::greater<>> backwardOpen;
+    std::unordered_map<H3Index, double, H3IndexHash> backwardG;
+    std::unordered_map<H3Index, H3Index, H3IndexHash> backwardPrev;
+    std::unordered_set<H3Index, H3IndexHash> backwardClosed;
+
+    // Резервирование памяти (по ~150 на каждое направление)
+    forwardG.reserve(150);
+    forwardPrev.reserve(150);
+    forwardClosed.reserve(150);
+    backwardG.reserve(150);
+    backwardPrev.reserve(150);
+    backwardClosed.reserve(150);
+
+    // Инициализация
+    LatLng startCoord;
+    if (cellToLatLng(start, &startCoord) != E_SUCCESS) {
+        return {};
+    }
+
+    forwardG[start] = 0.0;
+    forwardOpen.emplace(Node{start, 0.0, heuristic(start, endCoord)});
+
+    backwardG[end] = 0.0;
+    backwardOpen.emplace(Node{end, 0.0, heuristic(end, startCoord)});
+
+    // Переменные для отслеживания встречи
+    H3Index meetingPoint = H3_NULL;
+    double bestPathCost = std::numeric_limits<double>::infinity();
     int nodesExplored = 0;
 
-    while (!openSet.empty()) {
-        Node current = openSet.top();
-        openSet.pop();
-        nodesExplored++;
+    // Попеременный поиск с двух сторон
+    while (!forwardOpen.empty() && !backwardOpen.empty()) {
+        // Проверка терминации: если лучший путь уже найден
+        double forwardMin = forwardOpen.top().fScore;
+        double backwardMin = backwardOpen.top().fScore;
 
-        if (current.cell == end) {
-            return reconstructPath(previous, start, end);
+        if (forwardMin + backwardMin >= bestPathCost) {
+            break;  // Оптимальный путь найден
         }
 
-        if (closedSet.contains(current.cell)) {
-            continue;
-        }
-        closedSet.insert(current.cell);
-        emit newCell(current.cell);
+        // === FORWARD STEP ===
+        if (!forwardOpen.empty()) {
+            Node current = forwardOpen.top();
+            forwardOpen.pop();
+            nodesExplored++;
 
-        for (const auto neighbors = getNeighbors(current.cell); const H3Index &neighbor : neighbors) {
-            if (neighbor == H3_NULL)
-                continue;
+            if (!forwardClosed.contains(current.cell)) {
+                forwardClosed.insert(current.cell);
+                emit newCell(current.cell);
 
-            // Skip blocked and closed cells
-            if (closedSet.contains(neighbor) || blockedCells.contains(neighbor)) {
-                continue;
+                // Проверка встречи: нашли ли мы эту ячейку с обратной стороны?
+                if (backwardClosed.contains(current.cell)) {
+                    double pathCost = forwardG[current.cell] + backwardG[current.cell];
+                    if (pathCost < bestPathCost) {
+                        bestPathCost = pathCost;
+                        meetingPoint = current.cell;
+                    }
+                }
+
+                // Расширение узла
+                for (const auto neighbors = getNeighbors(current.cell); const H3Index &neighbor : neighbors) {
+                    if (neighbor == H3_NULL || forwardClosed.contains(neighbor) || blockedCells.contains(neighbor)) {
+                        continue;
+                    }
+
+                    double edgeDistance = getDistanceBetweenCells(current.cell, neighbor);
+                    double tentativeG = forwardG[current.cell] + edgeDistance;
+
+                    if (!forwardG.contains(neighbor) || tentativeG < forwardG[neighbor]) {
+                        forwardPrev[neighbor] = current.cell;
+                        forwardG[neighbor] = tentativeG;
+                        double h = heuristic(neighbor, endCoord);
+                        forwardOpen.emplace(Node{neighbor, tentativeG, tentativeG + h});
+                    }
+                }
             }
+        }
 
-            double edgeDistance = getDistanceBetweenCells(current.cell, neighbor);
-            double tentativeGScore = gScores[current.cell] + edgeDistance;
+        // === BACKWARD STEP ===
+        if (!backwardOpen.empty()) {
+            Node current = backwardOpen.top();
+            backwardOpen.pop();
+            nodesExplored++;
 
-            if (!gScores.contains(neighbor) || tentativeGScore < gScores[neighbor]) {
-                previous[neighbor] = current.cell;
-                gScores[neighbor] = tentativeGScore;
-                double h = heuristic(neighbor, endCoord);
-                openSet.emplace(Node{neighbor, tentativeGScore, tentativeGScore + h});
+            if (!backwardClosed.contains(current.cell)) {
+                backwardClosed.insert(current.cell);
+                emit newCell(current.cell);
+
+                // Проверка встречи
+                if (forwardClosed.contains(current.cell)) {
+                    double pathCost = forwardG[current.cell] + backwardG[current.cell];
+                    if (pathCost < bestPathCost) {
+                        bestPathCost = pathCost;
+                        meetingPoint = current.cell;
+                    }
+                }
+
+                // Расширение узла
+                for (const auto neighbors = getNeighbors(current.cell); const H3Index &neighbor : neighbors) {
+                    if (neighbor == H3_NULL || backwardClosed.contains(neighbor) || blockedCells.contains(neighbor)) {
+                        continue;
+                    }
+
+                    double edgeDistance = getDistanceBetweenCells(current.cell, neighbor);
+                    double tentativeG = backwardG[current.cell] + edgeDistance;
+
+                    if (!backwardG.contains(neighbor) || tentativeG < backwardG[neighbor]) {
+                        backwardPrev[neighbor] = current.cell;
+                        backwardG[neighbor] = tentativeG;
+                        double h = heuristic(neighbor, startCoord);
+                        backwardOpen.emplace(Node{neighbor, tentativeG, tentativeG + h});
+                    }
+                }
             }
         }
+    }
+
+    // Реконструкция пути через точку встречи
+    if (meetingPoint != H3_NULL) {
+        // Путь от start до meetingPoint
+        std::vector<H3Index> forwardPath;
+        H3Index current = meetingPoint;
+        while (current != start) {
+            forwardPath.push_back(current);
+            auto it = forwardPrev.find(current);
+            if (it == forwardPrev.end()) {
+                break;
+            }
+            current = it->second;
+        }
+        forwardPath.push_back(start);
+        std::ranges::reverse(forwardPath);
+
+        // Путь от meetingPoint до end
+        std::vector<H3Index> backwardPath;
+        current = meetingPoint;
+        while (current != end) {
+            auto it = backwardPrev.find(current);
+            if (it == backwardPrev.end()) {
+                break;
+            }
+            current = it->second;
+            backwardPath.push_back(current);
+        }
+        backwardPath.push_back(end);
+
+        // Объединение путей (без дублирования meetingPoint)
+        forwardPath.insert(forwardPath.end(), backwardPath.begin(), backwardPath.end());
+
+        spdlog::info("Bidirectional A* found path, explored {} nodes (meeting at 0x{:x})", nodesExplored, meetingPoint);
+        return forwardPath;
     }
 
     spdlog::warn("No path found, explored {} nodes", nodesExplored);
