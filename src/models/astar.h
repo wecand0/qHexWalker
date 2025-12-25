@@ -50,6 +50,7 @@ private:
     std::vector<H3Index> reconstructPath(const std::unordered_map<H3Index, H3Index, H3IndexHash> &previous,
                                          H3Index start, H3Index end);
     static H3Index cellToParentRes3(H3Index index);
+    static H3Index cellToChildRes3(H3Index index);
 };
 
 #endif  // Q_HEX_WALKER_ASTAR_H

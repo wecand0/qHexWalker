@@ -15,7 +15,8 @@ std::vector<H3Index> H3AStar::findShortestPath(const H3Index start, const H3Inde
     if (start == end) {
         throw std::runtime_error("Start and end points are the same");
     }
-    if (blockedCells.contains(start) || blockedCells.contains(end)) {
+
+    if (!blockedCells.empty() && (blockedCells.contains(start) || blockedCells.contains(end))) {
         throw std::runtime_error("Start or end cell is blocked");
     }
 
@@ -24,27 +25,46 @@ std::vector<H3Index> H3AStar::findShortestPath(const H3Index start, const H3Inde
     const int startRes = getResolution(start);
     const int endRes = getResolution(end);
 
-    const H3Index startRes2 = startRes != 3 ? cellToParentRes3(start) : start;
-    const H3Index endRes2 = endRes != 3 ? cellToParentRes3(end) : end;
+    H3Index startRes3 = startRes != 3 ? cellToParentRes3(start) : start;
+    H3Index endRes3 = endRes != 3 ? cellToParentRes3(end) : end;
 
-    if (startRes2 == H3_NULL || endRes2 == H3_NULL) {
-        throw std::domain_error("Error converting to resolution 2");
+    // H3Index startRes3 = H3_NULL;
+    // H3Index endRes3  = H3_NULL;
+    //
+    // if (startRes < 3) {
+    //     startRes3 = cellToParentRes3(start);
+    // }else if (startRes > 3) {
+    //     startRes3 = cellToChildRes3(start);
+    // }else {
+    //     startRes3 = start;
+    // }
+    //
+    // if (endRes < 3) {
+    //     endRes3 = cellToParentRes3(start);
+    // }else if (endRes > 3) {
+    //     endRes3 = cellToChildRes3(start);
+    // }else {
+    //     endRes3 = end;
+    // }
+
+    if (startRes3 == H3_NULL || endRes3 == H3_NULL) {
+        throw std::domain_error("Error converting to resolution 3");
     }
-    if (blockedCells.contains(startRes2) || blockedCells.contains(endRes2)) {
+    if (!blockedCells.empty() && (blockedCells.contains(startRes3) || blockedCells.contains(endRes3))) {
         return {};  // Coarse start/end blocked
     }
 
     LatLng endCoord;
-    if (cellToLatLng(endRes2, &endCoord) != E_SUCCESS) {
+    if (cellToLatLng(endRes3, &endCoord) != E_SUCCESS) {
         throw std::runtime_error("Error getting target coordinates");
     }
 
-    const std::vector<H3Index> pathRes2 = findPathAtResolution3(startRes2, endRes2, endCoord);
-    if (pathRes2.empty()) {
+    const std::vector<H3Index> pathRes3 = findPathAtResolution3(startRes3, endRes3, endCoord);
+    if (pathRes3.empty()) {
         return {};
     }
 
-    return refinePath(pathRes2, originalStart, originalEnd, startRes, endRes);
+    return refinePath(pathRes3, originalStart, originalEnd, startRes, endRes);
 }
 
 std::vector<H3Index> H3AStar::findPathAtResolution3(const H3Index start, const H3Index end, const LatLng &endCoord) {
@@ -419,9 +439,16 @@ std::vector<H3Index> H3AStar::reconstructPath(const std::unordered_map<H3Index, 
 }
 
 H3Index H3AStar::cellToParentRes3(const H3Index index) {
-    H3Index indexRes2 = H3_NULL;
-    if (cellToParent(index, 3, &indexRes2) != E_SUCCESS) {
+    H3Index indexRes3 = H3_NULL;
+    if (cellToParent(index, 3, &indexRes3) != E_SUCCESS) {
         return H3_NULL;
     }
-    return indexRes2;
+    return indexRes3;
+}
+H3Index H3AStar::cellToChildRes3(H3Index index) {
+    H3Index indexRes3 = H3_NULL;
+    if (cellToCenterChild(index, 3, &indexRes3) != E_SUCCESS) {
+        return H3_NULL;
+    }
+    return indexRes3;
 }

@@ -9,7 +9,6 @@ H3TargetsModel::H3TargetsModel(QObject *parent) : QAbstractListModel(parent) {
     };
     for (auto zoom = minZoom_c; zoom < maxZoom_c; zoom++) {
         zoomToRes_.emplace(zoom, std::floor(zoomToResolution(zoom)));
-        SPDLOG_INFO("{} {}", zoom, std::floor(zoomToResolution(zoom)));
     }
 }
 

@@ -8,6 +8,7 @@
 #include <QAbstractListModel>
 
 class H3Cell;
+class H3MazeAdapter;
 namespace H3_VIEWER {
 class H3Worker;
 }
@@ -43,7 +44,6 @@ public:
 
 public slots:
     Q_INVOKABLE void requestCells(const std::vector<H3Index> &indexes);
-    Q_INVOKABLE void requestCell(quint8 mapZoom, const QGeoCoordinate &coordinate);
     Q_INVOKABLE void clearAllCells();
 
 signals:
@@ -63,6 +63,7 @@ private:
 
     H3_VIEWER::H3Worker *worker_{};
     QThread *thread_{};
+    H3MazeAdapter *mazeAdapter_{};  // Адаптер для генерации лабиринта
 
     QList<H3Cell *> pathCells_;
     QVariantList coordinates_;

@@ -4,7 +4,6 @@
 
 class H3MazeGenerator final : public QObject {
     Q_OBJECT
-
 public:
     explicit H3MazeGenerator(QObject *parent = nullptr);
     ~H3MazeGenerator() override = default;

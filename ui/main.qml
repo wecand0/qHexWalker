@@ -651,10 +651,10 @@ ApplicationWindow {
                 delegate: MapPolygon {
                     id: mazePolyDelegate
                     path: modelData
-                    opacity: 0.3
+                    opacity: 0.85
                     color: "pink"
                     border.color: "black"
-                    border.width: 2
+                    border.width: 0.5
                     z: 1
 
                     Component.onCompleted: {
