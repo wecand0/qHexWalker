@@ -16,6 +16,7 @@ ApplicationWindow {
 
     property var coordinate: QtPositioning.coordinate(0.0, 0.0)
     property var zoomTarget: 0
+    property var isInRingOutOfMaze: false
     property var visibleBounds: ({
             north: 0,
             south: 0,
@@ -139,6 +140,31 @@ ApplicationWindow {
 
                         model: targetsModel
                         spacing: 4
+                        focus: true
+                        keyNavigationEnabled: true
+                        highlightFollowsCurrentItem: true
+
+                        // Highlight для текущего выбранного элемента
+                        highlight: Rectangle {
+                            color: "#4169E1"
+                            radius: 4
+                            opacity: 0.3
+                        }
+
+                        // Обработчики клавиш для перемещения элементов
+                        Keys.onPressed: function(event) {
+                            if (event.key === Qt.Key_Up) {
+                               if (currentIndex > 0) {
+                                    targetsModel.move(currentIndex, currentIndex - 1)
+                               }
+                                event.accepted = true
+                            } else if (event.key === Qt.Key_Down) {
+                                if (currentIndex < count - 1) {
+                                    targetsModel.move(currentIndex, currentIndex + 1)
+                                }
+                                event.accepted = true
+                            }
+                        }
 
                         addDisplaced: Transition {
                             NumberAnimation {properties: "x, y"; duration: 300}
@@ -175,17 +201,25 @@ ApplicationWindow {
                             radius: 4
                             width: coordinateListView.width
 
-
                             Behavior on color {
                                 ColorAnimation {
                                     duration: 150
                                 }
                             }
+
+                            Behavior on opacity {
+                                NumberAnimation { duration: 200 }
+                            }
+
                             MouseArea {
                                 id: itemMouseArea
                                 anchors.fill: parent
                                 hoverEnabled: true
-                                onClicked: {
+
+                                onClicked: function(mouse) {
+                                    coordinateListView.currentIndex = index
+                                    coordinateListView.forceActiveFocus()
+
                                     centerAnimation.to = model.coordinate
                                     zoomAnimation.to = model.zoom
                                     centerAnimation.start()
@@ -523,6 +557,9 @@ ApplicationWindow {
             Shortcut {
                 sequence: "a"
                 onActivated: {
+                    if(ringOutOfMaze.contains(mapMouseArea.currentCoordinate)){
+                        console.log("!!!")
+                    }
                     targetsModel.requestCell(map.zoomLevel.toFixed(1), mapMouseArea.currentCoordinate)
                 }
             }
@@ -627,6 +664,19 @@ ApplicationWindow {
                         map.removeMapItem(mazePolyDelegate)
                     }
                 }
+            }
+
+            MapCircle{
+                id: ringOutOfMaze
+                center {
+                    latitude: 0
+                    longitude: 0
+                }
+                radius: 7500000.0
+                color: 'transparent'
+                border.color: "red"
+                border.width: 3
+                z: 1
             }
 
 

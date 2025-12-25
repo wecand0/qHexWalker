@@ -72,9 +72,9 @@ private:
     const uint8_t maxZoom_c{15};
     std::unordered_map<uint8_t, uint8_t> zoomToRes_;
     const QHash<int, QString> resolutionColors_c = {
-        {2, "crimson"},      {3, "orangered"},   {4, "darkorange"},  {5, "orange"},          {6, "gold"},
-        {7, "yellow"},       {8, "greenyellow"}, {9, "limegreen"},   {10, "mediumseagreen"}, {11, "turquoise"},
-        {12, "deepskyblue"}, {13, "dodgerblue"}, {14, "mediumblue"}, {15, "darkviolet"}};
+        {3, "limegreen"},   {4, "green"},       {5, "darkGreen"},       {6, "gold"},       {7, "yellow"},
+        {8, "greenyellow"}, {9, "limegreen"},   {10, "mediumseagreen"}, {11, "turquoise"}, {12, "deepskyblue"},
+        {13, "dodgerblue"}, {14, "mediumblue"}, {15, "darkviolet"}};
 
     std::atomic_bool isClearing_{false};
 };

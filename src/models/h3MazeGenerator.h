@@ -40,8 +40,7 @@ private:
     static std::unordered_set<H3Index, H3IndexHash> getCellsInRadius(H3Index center, int radius);
 
     // Создает сетку комнат с минимальным интервалом 2
-    std::unordered_set<H3Index, H3IndexHash>
-    createRoomGrid(const std::unordered_set<H3Index, H3IndexHash> &allCells);
+    std::unordered_set<H3Index, H3IndexHash> createRoomGrid(const std::unordered_set<H3Index, H3IndexHash> &allCells);
 
     // Находит стену между двумя комнатами (на расстоянии 2)
     std::optional<H3Index> findWallBetween(H3Index room1, H3Index room2);

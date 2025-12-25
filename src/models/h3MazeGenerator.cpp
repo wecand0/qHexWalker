@@ -15,7 +15,7 @@ std::array<H3Index, 6> H3MazeGenerator::getNeighbors(const H3Index cell) {
     neighbors_ = {};
 
     int idx = 0;
-    for (const auto& neighbor : ring) {
+    for (const auto &neighbor : ring) {
         if (neighbor != H3_NULL && neighbor != cell && !isPentagon(neighbor)) {
             neighbors_[idx++] = neighbor;
         }
@@ -92,7 +92,7 @@ std::vector<H3Index> H3MazeGenerator::getRoomNeighbors(const H3Index room,
     std::array<H3Index, 19> ring = {};
     // Получаем соседей на расстоянии 2
     constexpr int kRingSize = 2;
-    if ( E_SUCCESS != gridDisk(room, kRingSize, ring.data())) {
+    if (E_SUCCESS != gridDisk(room, kRingSize, ring.data())) {
         return roomNeighbors;
     }
     for (const auto &candidate : ring) {

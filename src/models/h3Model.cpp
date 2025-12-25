@@ -178,7 +178,7 @@ void H3Model::requestCells(const std::vector<H3Index> &indexes) {
     }
     // Если есть старые ячейки, очищаем их перед добавлением новой
     if (!pathCells_.empty()) {
-        // clearAllCells();
+        clearAllCells();
 
         if (!isClearing_) {
             worker_->requestCell(indexes);

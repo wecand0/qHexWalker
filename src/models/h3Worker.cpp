@@ -9,10 +9,8 @@ namespace {
 
 // Converts a set of H3 cells to a list of merged polygons
 std::vector<QVariantList> cellsToMergedPolygons(const std::unordered_set<H3Index> &cells) {
-    std::vector<QVariantList> result;
-
     if (cells.empty()) {
-        return result;
+        return {};
     }
 
     // Filter valid cells - remove H3_NULL, pentagons, and ensure same resolution
@@ -40,20 +38,20 @@ std::vector<QVariantList> cellsToMergedPolygons(const std::unordered_set<H3Index
 
     if (cellsVec.empty()) {
         spdlog::warn("No valid cells to convert to polygons");
-        return result;
+        return {};
     }
 
     spdlog::info("Converting {} valid cells (res={}) to polygons", cellsVec.size(), targetRes);
 
     LinkedGeoPolygon polygon{};
-    H3Error err = cellsToLinkedMultiPolygon(cellsVec.data(), static_cast<int64_t>(cellsVec.size()), &polygon);
-
+    H3Error err = cellsToLinkedMultiPolygon(cellsVec.data(), static_cast<int>(cellsVec.size()), &polygon);
     if (err != E_SUCCESS) {
         spdlog::warn("cellsToLinkedMultiPolygon failed: {} (cells count: {})", describeH3Error(err), cellsVec.size());
-        return result;
+        return {};
     }
 
     // Process all polygons in the linked list
+    std::vector<QVariantList> result;
     const LinkedGeoPolygon *currentPoly = &polygon;
     while (currentPoly != nullptr) {
         // Process outer loop (first loop is the outer boundary)
@@ -138,11 +136,8 @@ void H3Worker::doWork() {
         }
 
         if (!isMazeComputed) {
-            const QGeoCoordinate center{0, 0, 0};
-            int radius = 50;
-
             // Конвертируем координату в H3
-            LatLng ll{.lat = degsToRads(center.latitude()), .lng = degsToRads(center.longitude())};
+            LatLng ll{.lat = 0, .lng = 0};
 
             H3Index centerCell = H3_NULL;
             H3Error err = E_SUCCESS;
@@ -150,7 +145,7 @@ void H3Worker::doWork() {
             if (err != E_SUCCESS) {
                 spdlog::warn("{} {}", "Failed to convert center coordinates to H3", describeH3Error(err));
             }
-
+            int radius = 50;
             spdlog::info("Generating maze at center cell with radius {}", radius);
 
             // Генерируем клеточный лабиринт (возвращает клетки-стены)
@@ -161,29 +156,28 @@ void H3Worker::doWork() {
             }
 
             spdlog::info("Cell maze generated: {} wall cells", walls.size());
-            isMazeComputed = true;
-            spdlog::info("Maze generation complete");
 
+            // кольцо вокруг лабиринта с радиусом на 1 больше
             int64_t ringSize = 0;
             radius++;
             err = maxGridDiskSize(radius, &ringSize);
             if (err != E_SUCCESS) {
                 spdlog::warn(describeH3Error(err));
             }
-            std::vector<H3Index> distances(ringSize);
-            err = gridRing(centerCell, radius, distances.data());
+            std::vector<H3Index> ring1st(ringSize);
+            err = gridRing(centerCell, radius, ring1st.data());
             if (err != E_SUCCESS) {
                 spdlog::warn(describeH3Error(err));
             }
-            distances.shrink_to_fit();
+            ring1st.shrink_to_fit();
 
-            const H3Index zeroCell = distances.front();
-            const H3Index middleCell = getMiddleOfRing(distances, zeroCell);
+            const H3Index zeroCell = ring1st.front();
+            const H3Index middleCell = getMiddleOfRing(ring1st, zeroCell);
 
             deleteStartEndEntities(zeroCell, middleCell);
 
             // The first cell is the entrance, skip it.
-            for (auto const &cellId : distances | std::views::drop(1)) {
+            for (auto const &cellId : ring1st | std::views::drop(1)) {
                 if (cellId == middleCell) {
                     continue;
                 }
@@ -196,12 +190,12 @@ void H3Worker::doWork() {
                 walls.insert(cellId);
             }
             // Визуализация: объединяем все стены в полигоны и отправляем
-            if (const auto mergedPolygons = cellsToMergedPolygons(walls); !mergedPolygons.empty()) {
+            if (auto mergedPolygons = cellsToMergedPolygons(walls); !mergedPolygons.empty()) {
                 emit mazePolygonsComputed(mergedPolygons);
             }
+            isMazeComputed = true;
+            spdlog::info("Maze generation complete");
         }
-
-
 
         // Устанавливаем стены в A*
         astar_->setBlockedCells(walls);
@@ -278,7 +272,7 @@ void H3Worker::requestCell(const std::vector<H3Index> &index) {
     }
     cv_.notify_one();
 }
-void H3Worker::deleteStartEndEntities(H3Index start, H3Index end) {
+void H3Worker::deleteStartEndEntities(const H3Index start, const H3Index end) {
     // start
     int64_t maxSize = 0;
     constexpr int kRingSize = 3;

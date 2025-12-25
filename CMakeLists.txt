@@ -78,7 +78,7 @@ if(BENCHMARK_ENABLE)
     message(STATUS "Benchmark        : вкл")
     find_package(benchmark CONFIG REQUIRED)
 else ()
-    message(STATUS "Benchmark        : вкл")
+    message(STATUS "Benchmark        : выкл")
 endif ()
 
 find_package(spdlog CONFIG REQUIRED)
