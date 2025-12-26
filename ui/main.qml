@@ -843,7 +843,7 @@ ApplicationWindow {
 
         anchors.centerIn: parent
         width: Math.min(parent.width * 0.8, 600)
-        height: notificationText.height + 40
+        height: notificationText.implicitHeight + 40
         modal: false
         closePolicy: Popup.CloseOnPressOutside
         z: 1000

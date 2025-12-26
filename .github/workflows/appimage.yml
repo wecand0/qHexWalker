@@ -50,6 +50,18 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
+      - name: Debug submodules
+        run: |
+          cd maplibre-native-qt
+          echo "=== .gitmodules ==="
+          cat .gitmodules || true
+          echo "=== vendor directory ==="
+          ls -la vendor/
+          echo "=== maplibre-native directory ==="
+          ls -la vendor/maplibre-native/ || true
+          echo "=== git submodule status ==="
+          git submodule status --recursive
+
       - name: Build MapLibre Native Qt
         run: |
           cd maplibre-native-qt
