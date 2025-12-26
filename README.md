@@ -11,7 +11,7 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-Doxygen-blue.svg)](https://wecand0.github.io/qHexWalker/)
 
-<img src="https://github.com/user-attachments/assets/18321b05-142d-4e33-87b3-a15d020f7126" width="600" alt="qHexWalker Maze Screenshot"/>
+<img width="600" alt="qHexWalker Maze Screenshot" src="https://github.com/user-attachments/assets/792f602b-8c0b-4d73-a14b-299f2380b31e" />
 
 [Features](#features) | [How It Works](#how-it-works) | [Installation](#installation) | [Usage](#usage) | [Architecture](#architecture) | [API Docs](https://wecand0.github.io/qHexWalker/)
 
@@ -28,9 +28,13 @@
 - **Bidirectional A* pathfinding** with hierarchical resolution refinement
 - **Multi-waypoint route planning** with real-time visualization
 
-### Demo
+### Demo video
 
-https://github.com/user-attachments/assets/fddeafd0-e530-4c4f-9296-0b9d5bb9605f
+
+https://github.com/user-attachments/assets/c5f7a4c1-a350-4682-8e6f-823c8952c776
+
+
+
 
 ---
 
