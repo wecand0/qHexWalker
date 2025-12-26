@@ -42,9 +42,16 @@ jobs:
         with:
           vcpkgGitCommitId: 'a34c873a9717a888f58dc05268dea15592c2f0ff'
 
+      - name: Checkout MapLibre Native Qt
+        uses: actions/checkout@v4
+        with:
+          repository: maplibre/maplibre-native-qt
+          path: maplibre-native-qt
+          submodules: recursive
+          fetch-depth: 0
+
       - name: Build MapLibre Native Qt
         run: |
-          git clone --recursive https://github.com/maplibre/maplibre-native-qt.git
           cd maplibre-native-qt
           cmake -S . -B build \
             -DCMAKE_BUILD_TYPE=Release \
