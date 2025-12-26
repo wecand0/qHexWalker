@@ -9,10 +9,11 @@
 [![H3](https://img.shields.io/badge/H3-4.4.0-orange.svg)](https://h3geo.org/)
 [![MapLibre](https://img.shields.io/badge/MapLibre-Native%20Qt-purple.svg)](https://maplibre.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Documentation](https://img.shields.io/badge/docs-Doxygen-blue.svg)](https://wecand0.github.io/qHexWalker/)
 
 <img src="https://github.com/user-attachments/assets/18321b05-142d-4e33-87b3-a15d020f7126" width="600" alt="qHexWalker Maze Screenshot"/>
 
-[Features](#features) | [How It Works](#how-it-works) | [Installation](#installation) | [Usage](#usage) | [Architecture](#architecture)
+[Features](#features) | [How It Works](#how-it-works) | [Installation](#installation) | [Usage](#usage) | [Architecture](#architecture) | [API Docs](https://wecand0.github.io/qHexWalker/)
 
 </div>
 

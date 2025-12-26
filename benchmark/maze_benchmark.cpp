@@ -414,54 +414,54 @@ static void BM_MazeGenerationAndPathfinding(benchmark::State &state) {
 BENCHMARK(BM_MazeGenerationAndPathfinding)->Arg(10)->Arg(30)->Arg(50);
 
 // Множественные запросы поиска пути в одном лабиринте
-static void BM_AStar_MultipleQueries(benchmark::State &state) {
-    spdlog::set_level(spdlog::level::err);
-    // Генерируем лабиринт один раз
-    H3MazeGenerator generator(nullptr);
-    const LatLng ll{.lat = 0.0, .lng = 0.0};
-    H3Index centerCell = H3_NULL;
-    latLngToCell(&ll, 3, &centerCell);
-
-    const int radius = 30;
-    auto walls = generator.generateMaze(centerCell, radius);
-
-    H3AStar astar;
-    astar.setBlockedCells(walls);
-
-    // Получаем все свободные клетки
-    int64_t diskSize = 0;
-    maxGridDiskSize(radius, &diskSize);
-    std::vector<H3Index> disk(diskSize);
-    gridDisk(centerCell, radius, disk.data());
-
-    std::vector<H3Index> freeCells;
-    for (const auto &cell : disk) {
-        if (isValidCell(cell) && !walls.contains(cell)) {
-            freeCells.push_back(cell);
-        }
-    }
-
-    if (freeCells.size() < 10) {
-        state.SkipWithError("Not enough free cells");
-        return;
-    }
-
-    const int numQueries = state.range(0);
-
-    for (const auto &_ : state) {
-        // Выполняем несколько запросов
-        for (int i = 0; i < numQueries && i + 1 < freeCells.size(); i++) {
-            try {
-                auto path = astar.findShortestPath(freeCells[i], freeCells[i + 1]);
-                benchmark::DoNotOptimize(path);
-            } catch (...) {
-                // Путь может не существовать
-            }
-        }
-    }
-
-    state.SetItemsProcessed(state.iterations() * numQueries);
-}
-BENCHMARK(BM_AStar_MultipleQueries)->Arg(1)->Arg(5)->Arg(10)->Arg(20);
+// static void BM_AStar_MultipleQueries(benchmark::State &state) {
+//     spdlog::set_level(spdlog::level::err);
+//     // Генерируем лабиринт один раз
+//     H3MazeGenerator generator(nullptr);
+//     const LatLng ll{.lat = 0.0, .lng = 0.0};
+//     H3Index centerCell = H3_NULL;
+//     latLngToCell(&ll, 3, &centerCell);
+//
+//     const int radius = 30;
+//     auto walls = generator.generateMaze(centerCell, radius);
+//
+//     H3AStar astar;
+//     astar.setBlockedCells(walls);
+//
+//     // Получаем все свободные клетки
+//     int64_t diskSize = 0;
+//     maxGridDiskSize(radius, &diskSize);
+//     std::vector<H3Index> disk(diskSize);
+//     gridDisk(centerCell, radius, disk.data());
+//
+//     std::vector<H3Index> freeCells;
+//     for (const auto &cell : disk) {
+//         if (isValidCell(cell) && !walls.contains(cell)) {
+//             freeCells.push_back(cell);
+//         }
+//     }
+//
+//     if (freeCells.size() < 10) {
+//         state.SkipWithError("Not enough free cells");
+//         return;
+//     }
+//
+//     const auto numQueries = state.range(0);
+//
+//     for (const auto &_ : state) {
+//         // Выполняем несколько запросов
+//         for (auto i = 0; i < numQueries && i + 1 < freeCells.size(); i++) {
+//             try {
+//                 auto path = astar.findShortestPath(freeCells[i], freeCells[i + 1]);
+//                 benchmark::DoNotOptimize(path);
+//             } catch (...) {
+//                 // Путь может не существовать
+//             }
+//         }
+//     }
+//
+//     state.SetItemsProcessed(state.iterations() * numQueries);
+// }
+// BENCHMARK(BM_AStar_MultipleQueries)->Arg(1)->Arg(5)->Arg(10)->Arg(20);
 
 BENCHMARK_MAIN();

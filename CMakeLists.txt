@@ -166,17 +166,48 @@ copy_recursive(${CMAKE_SOURCE_DIR}/data/ ${CMAKE_CURRENT_BINARY_DIR} *)
 #
 # Тесты
 #
-#if (BUILD_TESTS)
-#    # Рекурсивно ищем все используемые в тестах .cpp файлы
-#    file(GLOB TEST_SRC_FILES "${CMAKE_SOURCE_DIR}/tests/*.cpp")
+if (BUILD_TESTS)
+    # Рекурсивно ищем все используемые в тестах .cpp файлы
+    file(GLOB TEST_SRC_FILES "${CMAKE_SOURCE_DIR}/tests/*.cpp")
+
+    add_executable(${PROJECT_NAME}_tests "${TEST_SRC_FILES}")
+    target_link_libraries(${PROJECT_NAME}_tests PRIVATE ${PROJECT_NAME}_imp GTest::gtest GTest::gtest_main)
+    target_include_directories(${PROJECT_NAME}_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    add_test(NAME ${PROJECT_NAME}_Tests COMMAND ${PROJECT_NAME}_tests)
+
+    copy_recursive(${CMAKE_SOURCE_DIR}/tests/files ${CMAKE_CURRENT_BINARY_DIR}/tests/files *)
+endif ()
+
+########################################
 #
-#    add_executable(${PROJECT_NAME}_tests "${TEST_SRC_FILES}")
-#    target_link_libraries(${PROJECT_NAME}_tests PRIVATE ${PROJECT_NAME}_imp GTest::gtest GTest::gtest_main)
-#    target_include_directories(${PROJECT_NAME}_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-#    add_test(NAME ${PROJECT_NAME}_Tests COMMAND ${PROJECT_NAME}_tests)
+# Documentation (Doxygen)
 #
-#    copy_recursive(${CMAKE_SOURCE_DIR}/tests/files ${CMAKE_CURRENT_BINARY_DIR}/tests/files *)
-#endif ()
+option(BUILD_DOCS "Build documentation with Doxygen" ON)
+
+if(BUILD_DOCS)
+    find_package(Doxygen REQUIRED dot)
+
+    if(DOXYGEN_FOUND)
+        message(STATUS "Doxygen         : вкл (${DOXYGEN_VERSION})")
+
+        set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile)
+        set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/docs)
+
+        add_custom_target(docs
+            COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_IN}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            COMMENT "Generating API documentation with Doxygen"
+            VERBATIM
+        )
+
+        # Add 'docs' target to 'all' if explicitly requested
+        # Usage: cmake --build build --target docs
+    else()
+        message(WARNING "Doxygen not found, documentation will not be built")
+    endif()
+else()
+    message(STATUS "Doxygen         : выкл")
+endif()
 
 ########################################
 #

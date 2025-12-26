@@ -236,7 +236,7 @@ std::vector<H3Index> H3AStar::findLocalPathAtResolution(H3Index start, H3Index e
     gScores[start] = 0.0;
     openSet.push({start, 0.0, heuristic(start, endCoord)});
 
-    int maxIterations = MAX_CELLS_RES_2;
+    constexpr int maxIterations = MAX_CELLS_RES_3;
     int iterations = 0;
 
     while (!openSet.empty() && iterations++ < maxIterations) {
