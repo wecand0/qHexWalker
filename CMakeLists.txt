@@ -20,9 +20,9 @@ set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 # =============================================================================
 # Build Options
 # =============================================================================
-option(BUILD_TESTS    "Build unit tests"                    ON)
-option(BUILD_DOCS     "Build Doxygen documentation"         ON)
-option(BENCHMARK_ENABLE "Build performance benchmarks"      ON)
+option(BUILD_TESTS    "Build unit tests"                    OFF)
+option(BUILD_DOCS     "Build Doxygen documentation"         OFF)
+option(BENCHMARK_ENABLE "Build performance benchmarks"      OFF)
 option(DEBUG          "Enable debug build"                  OFF)
 option(ENABLE_NATIVE_OPTIMIZATIONS "Enable -march=native"   ON)
 
@@ -73,13 +73,6 @@ add_subdirectory(benchmark)
 add_subdirectory(doc)
 
 # =============================================================================
-# Packaging (CPack)
+# Packaging (CPack, AppImage, etc.)
 # =============================================================================
-set(CPACK_GENERATOR TBZ2)
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    set(CPACK_SYSTEM_NAME "macOS")
-else()
-    set(CPACK_SYSTEM_NAME "${CMAKE_SYSTEM_NAME}")
-endif()
-
-include(CPack)
+include(cmake/Packaging.cmake)

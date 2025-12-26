@@ -1,0 +1,61 @@
+# appimage-builder recipe for qHexWalker
+# Alternative to linuxdeploy - uses appimage-builder
+# Install: pip install appimage-builder
+# Usage: appimage-builder --recipe packaging/appimage/AppImageBuilder.yml
+
+version: 1
+script:
+  - rm -rf AppDir || true
+  - mkdir -p AppDir/usr/bin
+  - mkdir -p AppDir/usr/share/applications
+  - mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+  - cp build/qHexWalker AppDir/usr/bin/
+  - cp packaging/appimage/qHexWalker.desktop AppDir/usr/share/applications/
+
+AppDir:
+  path: ./AppDir
+
+  app_info:
+    id: io.github.wecand0.qHexWalker
+    name: qHexWalker
+    icon: qHexWalker
+    version: 0.0.1
+    exec: usr/bin/qHexWalker
+    exec_args: $@
+
+  apt:
+    arch: amd64
+    sources:
+      - sourceline: deb http://archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse
+        key_url: http://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C
+      - sourceline: deb http://archive.ubuntu.com/ubuntu/ jammy-updates main restricted universe multiverse
+
+    include:
+      - libqt6core6
+      - libqt6gui6
+      - libqt6qml6
+      - libqt6quick6
+      - libqt6positioning6
+      - libqt6sql6
+      - qml6-module-qtquick
+      - qml6-module-qtquick-controls
+      - qml6-module-qtquick-layouts
+      - qml6-module-qtpositioning
+
+  files:
+    include:
+      - usr/lib/x86_64-linux-gnu/qt6/plugins/
+      - usr/lib/x86_64-linux-gnu/qt6/qml/
+    exclude:
+      - usr/share/doc
+      - usr/share/man
+
+  runtime:
+    env:
+      QT_PLUGIN_PATH: '${APPDIR}/usr/lib/x86_64-linux-gnu/qt6/plugins'
+      QML2_IMPORT_PATH: '${APPDIR}/usr/lib/x86_64-linux-gnu/qt6/qml'
+
+AppImage:
+  arch: x86_64
+  update-information: gh-releases-zsync|wecand0|qHexWalker|latest|qHexWalker-*x86_64.AppImage.zsync
+  sign-key: None

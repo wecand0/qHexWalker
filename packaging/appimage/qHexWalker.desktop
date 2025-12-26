@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=qHexWalker
+GenericName=Hexagonal Pathfinding
+Comment=Hexagonal Grid Pathfinding & Maze Visualization on Interactive Maps
+Exec=qHexWalker
+Icon=qHexWalker
+Terminal=false
+Categories=Science;Education;Geography;
+Keywords=hexagon;pathfinding;maze;h3;map;
+StartupWMClass=qHexWalker

@@ -1,0 +1,122 @@
+name: AppImage
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-appimage:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.6.0'
+          host: 'linux'
+          target: 'desktop'
+          arch: 'gcc_64'
+          modules: 'qtpositioning qtlocation'
+          cache: true
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            ninja-build \
+            libgl1-mesa-dev \
+            libxkbcommon-x11-0 \
+            libxcb-cursor0 \
+            libfuse2 \
+            file
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: 'a34c873a9717a888f58dc05268dea15592c2f0ff'
+
+      - name: Build MapLibre Native Qt
+        run: |
+          git clone https://github.com/maplibre/maplibre-native-qt.git
+          cd maplibre-native-qt
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/maplibre-install \
+            -DCMAKE_PREFIX_PATH="${Qt6_DIR}" \
+            -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+          cmake --build build -j$(nproc)
+          cmake --install build
+
+      - name: Configure project
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" \
+            -DCMAKE_PREFIX_PATH="${Qt6_DIR};${{ github.workspace }}/maplibre-install" \
+            -DBUILD_TESTS=OFF \
+            -DBENCHMARK_ENABLE=OFF \
+            -DBUILD_DOCS=OFF
+
+      - name: Build project
+        run: cmake --build build -j$(nproc)
+
+      - name: Download linuxdeploy
+        run: |
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy*.AppImage
+
+      - name: Create AppImage
+        env:
+          QMAKE: ${{ env.Qt6_DIR }}/bin/qmake
+          QML_SOURCES_PATHS: ${{ github.workspace }}/ui
+          QML_MODULES_PATHS: ${{ env.Qt6_DIR }}/qml
+          EXTRA_QT_PLUGINS: positioning;sqldrivers
+          EXCLUDE_PLUGINS: geoservices
+          NO_STRIP: 1
+        run: |
+          # Prepare AppDir
+          mkdir -p AppDir/usr/bin
+          mkdir -p AppDir/usr/share/applications
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+
+          cp build/src/qHexWalker AppDir/usr/bin/
+          cp packaging/appimage/qHexWalker.desktop AppDir/usr/share/applications/
+
+          # Create simple icon
+          cat > AppDir/usr/share/icons/hicolor/256x256/apps/qHexWalker.svg << 'EOF'
+          <svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+            <rect width="256" height="256" rx="32" fill="#4CAF50"/>
+            <polygon points="128,48 197,88 197,168 128,208 59,168 59,88" fill="none" stroke="white" stroke-width="8" transform="translate(0,0)"/>
+          </svg>
+          EOF
+
+          # Run linuxdeploy
+          ./linuxdeploy-x86_64.AppImage \
+            --appdir AppDir \
+            --executable AppDir/usr/bin/qHexWalker \
+            --desktop-file AppDir/usr/share/applications/qHexWalker.desktop \
+            --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/qHexWalker.svg \
+            --plugin qt \
+            --output appimage
+
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: qHexWalker-AppImage
+          path: qHexWalker*.AppImage
+
+      - name: Upload to Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: qHexWalker*.AppImage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
