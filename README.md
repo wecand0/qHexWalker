@@ -11,7 +11,10 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-Doxygen-blue.svg)](https://wecand0.github.io/qHexWalker/)
 
-<img width="600" alt="qHexWalker Maze Screenshot" src="https://github.com/user-attachments/assets/792f602b-8c0b-4d73-a14b-299f2380b31e" />
+
+
+<img width="600" height="800" alt="qHexWalker Maze Screenshot" src="https://github.com/user-attachments/assets/9c650079-6804-4e37-9b80-ea9d703a3e75" />
+
 
 [Features](#features) | [How It Works](#how-it-works) | [Installation](#installation) | [Usage](#usage) | [Architecture](#architecture) | [API Docs](https://wecand0.github.io/qHexWalker/)
 
@@ -31,7 +34,10 @@
 ### Demo video
 
 
-https://github.com/user-attachments/assets/c5f7a4c1-a350-4682-8e6f-823c8952c776
+https://github.com/user-attachments/assets/e94c49b7-bd74-475e-b5ab-d93d168e09cf
+
+
+
 
 
 
