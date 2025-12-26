@@ -2,6 +2,7 @@
 #include "h3MazeGenerator.h"
 
 #include <QtConcurrent/qtconcurrentrun.h>
+#include <ranges>
 
 H3MazeAdapter::H3MazeAdapter(QObject *parent) : QObject(parent) { mazeGenerator_ = new H3MazeGenerator(this); }
 
