@@ -81,9 +81,9 @@ public:
      */
     enum Roles {
         ResRole = Qt::UserRole + 1,  ///< Cell resolution (3-15).
-        IndexRole,                    ///< H3 cell index.
-        CellColor,                    ///< Cell display color.
-        PathRole                      ///< Whether cell is part of path.
+        IndexRole,                   ///< H3 cell index.
+        CellColor,                   ///< Cell display color.
+        PathRole                     ///< Whether cell is part of path.
     };
 
     /**
@@ -271,9 +271,9 @@ private:
      */
     void addPentagons();
 
-    H3_VIEWER::H3Worker *worker_{};    ///< Worker for async operations.
-    QThread *thread_{};                 ///< Worker thread.
-    H3MazeAdapter *mazeAdapter_{};      ///< Maze generation adapter.
+    H3_VIEWER::H3Worker *worker_{};  ///< Worker for async operations.
+    QThread *thread_{};              ///< Worker thread.
+    H3MazeAdapter *mazeAdapter_{};   ///< Maze generation adapter.
 
     QList<H3Cell *> pathCells_;         ///< Cells that are part of the current path.
     QVariantList coordinates_;          ///< Cell coordinates for display.
@@ -282,8 +282,8 @@ private:
     QGeoCoordinate mazeCenter_;         ///< Maze center coordinate.
     double mazeRadius_{0.0};            ///< Maze boundary radius in meters.
 
-    const uint8_t minZoom_c{3};         ///< Minimum supported zoom level.
-    const uint8_t maxZoom_c{15};        ///< Maximum supported zoom level.
+    const uint8_t minZoom_c{3};                       ///< Minimum supported zoom level.
+    const uint8_t maxZoom_c{15};                      ///< Maximum supported zoom level.
     std::unordered_map<uint8_t, uint8_t> zoomToRes_;  ///< Zoom to resolution mapping.
 
     /// @brief Color palette for different resolutions.

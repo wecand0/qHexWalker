@@ -96,7 +96,7 @@ public:
      */
     struct PendingRequest {
         std::vector<H3Index> indexes;  ///< Cell indices to process.
-        bool has{};                     ///< Flag indicating pending request.
+        bool has{};                    ///< Flag indicating pending request.
     };
 
 public slots:

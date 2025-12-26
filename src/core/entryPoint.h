@@ -114,8 +114,8 @@ private:
      */
     void InitEngine();
 
-    QQmlApplicationEngine *engine_{};   ///< QML application engine.
-    QQuickWindow *rootWindow_{};        ///< Root window reference.
+    QQmlApplicationEngine *engine_{};  ///< QML application engine.
+    QQuickWindow *rootWindow_{};       ///< Root window reference.
 
     std::unique_ptr<TD::Logger> logger_;  ///< Logger instance.
     H3Model *h3Model_{};                  ///< Hexagonal cell model.

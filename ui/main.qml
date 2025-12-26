@@ -649,7 +649,7 @@ ApplicationWindow {
                     color: "pink"
                     border.color: "black"
                     border.width: 0.5
-                    z: 2
+                    z: 1
 
                     Component.onCompleted: {
                         map.addMapItem(mazePolyDelegate)
@@ -678,6 +678,7 @@ ApplicationWindow {
                 id: targetCells
                 model: targetsModel ? targetsModel : null
                 visible: true
+                z: 20
 
                 delegate: Component {
                     id: cellDelegate
@@ -692,7 +693,6 @@ ApplicationWindow {
                             path: model ? model.path : []
                             referenceSurface: QtLocation.ReferenceSurface.Globe
                             visible: true
-                            z: model ? model.res : 2
                             MouseArea {
                                 id: mouseID
                                 anchors.fill: parent
@@ -717,7 +717,6 @@ ApplicationWindow {
                         MapQuickItem {
                             coordinate: model ? model.coordinate : QtPositioning.coordinate()
                             anchorPoint: Qt.point(sourceItem.width / 2, sourceItem.height / 2)
-                            z: model ? model.res + 1 : 3
 
                             sourceItem: Rectangle {
                                 width: textMetrics.width + 10

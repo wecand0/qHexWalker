@@ -106,7 +106,7 @@ void H3Worker::onAStarNewCell(const H3Index cell) {
 
     // Throttling: показываем каждую N-ую ячейку для плавной анимации
     static int counter = 0;
-    static constexpr int THROTTLE_FACTOR = 10;  // Показываем каждую 10-ю ячейку
+    static constexpr int THROTTLE_FACTOR = 25;  // Показываем каждую 25-ю ячейку
 
     if (++counter % THROTTLE_FACTOR != 0) {
         return;

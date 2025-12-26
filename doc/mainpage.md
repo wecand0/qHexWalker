@@ -7,8 +7,6 @@
 **qHexWalker** is a Qt 6 desktop application that combines Uber's H3 hexagonal indexing system
 with MapLibre maps to provide interactive pathfinding and maze visualization on hexagonal grids.
 
-@image html architecture.png "Application Architecture" width=600px
-
 ## Key Features
 
 - **H3 Hexagonal Grid Visualization** - Display hierarchical hexagonal cells at resolutions 3-15

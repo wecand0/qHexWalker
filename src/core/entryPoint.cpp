@@ -56,12 +56,12 @@ void EntryPoint::InitMap() {
 
     mapProvider_->setUrl(pathUrl_c);
 
-// #ifndef __APPLE__
-//     const QString pathToMap = "mbtiles://" + QDir::currentPath() + QDir::separator() + "maplibre.mbtiles";
-//     mapProvider_->exchangeUrlOffline(pathToMap);
-// #else
-//     mapProvider_->setUrl(pathUrl_c);
-// #endif
+    // #ifndef __APPLE__
+    //     const QString pathToMap = "mbtiles://" + QDir::currentPath() + QDir::separator() + "maplibre.mbtiles";
+    //     mapProvider_->exchangeUrlOffline(pathToMap);
+    // #else
+    //     mapProvider_->setUrl(pathUrl_c);
+    // #endif
 }
 
 void EntryPoint::InitEngine() {

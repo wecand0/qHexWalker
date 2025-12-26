@@ -71,8 +71,8 @@ public:
      */
     struct MazeResult {
         std::unordered_set<H3Index> walls;  ///< Set of wall cell indices.
-        H3Index entrance;                    ///< Entry point cell index.
-        H3Index exit;                        ///< Exit point cell index.
+        H3Index entrance;                   ///< Entry point cell index.
+        H3Index exit;                       ///< Exit point cell index.
     };
 
     /**

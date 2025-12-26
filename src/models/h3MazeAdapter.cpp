@@ -92,8 +92,8 @@ void H3MazeAdapter::generateMaze(const double lat, const double lon, const int k
         }
     }
 
-    // Добавляем буфер 250'000 м, т.к. Лабиринт неидеальный круг из-за h3 rings
-    const double radiusWithBuffer = maxDistance + 250000;
+    // Добавляем буфер 150'000 м, т.к. Лабиринт неидеальный круг из-за h3 rings
+    const double radiusWithBuffer = maxDistance + 150000;
     const QGeoCoordinate center(lat, lon);
 
     spdlog::info("Maze radius calculated: max distance = {} m, with buffer = {} m", maxDistance, radiusWithBuffer);
