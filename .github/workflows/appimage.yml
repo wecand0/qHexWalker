@@ -70,7 +70,8 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/maplibre-install \
             -DCMAKE_PREFIX_PATH="${Qt6_DIR}" \
             -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" \
-            -DMLN_WITH_OPENGL=ON
+            -DMLN_WITH_OPENGL=ON \
+            -DMLN_QT_WITH_WIDGETS=OFF
           cmake --build build -j$(nproc)
           cmake --install build
 
