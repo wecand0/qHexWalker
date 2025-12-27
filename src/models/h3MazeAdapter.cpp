@@ -1,21 +1,49 @@
 #include "h3MazeAdapter.h"
 #include "h3MazeGenerator.h"
 
+#include <QPointer>
 #include <QtConcurrent/qtconcurrentrun.h>
 #include <ranges>
 
-H3MazeAdapter::H3MazeAdapter(QObject *parent) : QObject(parent) { mazeGenerator_ = new H3MazeGenerator(this); }
+H3MazeAdapter::H3MazeAdapter(QObject *parent) : QObject(parent) {
+    mazeGenerator_ = new H3MazeGenerator(this);
+}
 
-H3MazeAdapter::~H3MazeAdapter() = default;
+H3MazeAdapter::~H3MazeAdapter() {
+    // Ждем завершения всех асинхронных задач перед уничтожением
+    for (auto &future : pendingFutures_) {
+        if (future.isRunning()) {
+            future.waitForFinished();
+        }
+    }
+    pendingFutures_.clear();
+}
 
 void H3MazeAdapter::generateMazeAsync(const double lat, const double lon, const int kRingRadius) {
-    auto _ = QtConcurrent::run([=, this] {
+    // Используем QPointer для безопасного доступа к this из другого потока
+    QPointer self(this);
+
+    auto future = QtConcurrent::run([self, lat, lon, kRingRadius] {
+        // Проверяем, что объект все еще существует
+        if (!self) {
+            spdlog::warn("H3MazeAdapter was deleted before maze generation completed");
+            return;
+        }
+
         try {
-            generateMaze(lat, lon, kRingRadius);
+            self->generateMaze(lat, lon, kRingRadius);
         } catch (const std::exception &e) {
             spdlog::critical("Maze generation failed: {}", e.what());
         }
     });
+
+    // Сохраняем future для отслеживания и корректного завершения
+    pendingFutures_.append(future);
+
+    // Очищаем завершенные futures для экономии памяти
+    pendingFutures_.erase(
+        std::ranges::remove_if(pendingFutures_, [](const QFuture<void> &f) { return f.isFinished(); }).begin(),
+        pendingFutures_.end());
 }
 
 void H3MazeAdapter::generateMaze(const double lat, const double lon, const int kRingRadius) {
@@ -46,17 +74,35 @@ void H3MazeAdapter::generateMaze(const double lat, const double lon, const int k
     radius++;
     err = maxGridDiskSize(radius, &ringSize);
     if (err != E_SUCCESS) {
-        spdlog::warn(describeH3Error(err));
+        spdlog::error("maxGridDiskSize failed: {}", describeH3Error(err));
+        return;  // Прерываем выполнение при критической ошибке
     }
+
     std::vector<H3Index> ring1st(ringSize);
     err = gridRing(centerCell, radius, ring1st.data());
     if (err != E_SUCCESS) {
-        spdlog::warn(describeH3Error(err));
+        spdlog::error("gridRing failed: {}", describeH3Error(err));
+        return;  // Прерываем выполнение при критической ошибке
     }
-    ring1st.shrink_to_fit();
+
+    // Фильтруем невалидные ячейки из ring
+    ring1st.erase(
+        std::remove_if(ring1st.begin(), ring1st.end(),
+                       [](H3Index cell) { return cell == H3_NULL || !isValidCell(cell); }),
+        ring1st.end());
+
+    if (ring1st.empty()) {
+        spdlog::error("No valid cells in ring after filtering");
+        return;
+    }
 
     const H3Index zeroCell = ring1st.front();
     const H3Index middleCell = getMiddleOfRing(ring1st, zeroCell);
+
+    if (middleCell == H3_NULL) {
+        spdlog::error("Failed to find middle cell in ring");
+        return;
+    }
 
     deleteStartEndEntities(zeroCell, middleCell, walls);
 
@@ -155,10 +201,16 @@ std::vector<QVariantList> H3MazeAdapter::cellsToMergedPolygons(const std::unorde
     spdlog::info("Converting {} valid cells (res={}) to polygons", cellsVec.size(), targetRes);
 
     LinkedGeoPolygon polygon{};
+
+    // RAII: Автоматически освобождаем память при любом выходе из функции
+    auto cleanup = qScopeGuard([&polygon] {
+        destroyLinkedMultiPolygon(&polygon);
+    });
+
     if (const H3Error err = cellsToLinkedMultiPolygon(cellsVec.data(), static_cast<int>(cellsVec.size()), &polygon);
         err != E_SUCCESS) {
         spdlog::warn("cellsToLinkedMultiPolygon failed: {} (cells count: {})", describeH3Error(err), cellsVec.size());
-        return {};
+        return {};  // cleanup вызовется автоматически
     }
 
     // Process all polygons in the linked list
@@ -215,7 +267,8 @@ std::vector<QVariantList> H3MazeAdapter::cellsToMergedPolygons(const std::unorde
         currentPoly = currentPoly->next;
     }
 
-    destroyLinkedMultiPolygon(&polygon);
+    // cleanup (qScopeGuard) автоматически вызовет destroyLinkedMultiPolygon
+    // при выходе из функции
 
     spdlog::info("Converted {} cells to {} polygons", cells.size(), result.size());
     return result;

@@ -87,12 +87,10 @@ void H3Model::Init() {
             Qt::QueuedConnection);
 
     // Сигнал для передачи стен в worker для A* алгоритма
-    // FIXME понять почему слот так не срабатывает
-    // connect(mazeAdapter_, &H3MazeAdapter::mazeWallsGenerated, worker_, &H3_VIEWER::H3Worker::setWalls,
-    //         Qt::QueuedConnection);
     connect(
         mazeAdapter_, &H3MazeAdapter::mazeWallsGenerated, this,
         [this](const std::unordered_set<H3Index> &walls) { worker_->setWalls(walls); }, Qt::QueuedConnection);
+
 
     // Пробрасываем сигнал mazeWallsGenerated наружу для targetsModel
     connect(mazeAdapter_, &H3MazeAdapter::mazeWallsGenerated, this, &H3Model::mazeWallsGenerated, Qt::QueuedConnection);

@@ -1,6 +1,8 @@
 #ifndef QHEXWALKER_H3MAZEADAPTER_H
 #define QHEXWALKER_H3MAZEADAPTER_H
 
+#include <QFuture>
+
 class H3MazeGenerator;
 class H3MazeAdapter final : public QObject {
     Q_OBJECT
@@ -31,6 +33,7 @@ private:
     static H3Index getMiddleOfRing(const std::vector<H3Index> &distances, H3Index zeroCell);
 
     H3MazeGenerator *mazeGenerator_{};
+    QList<QFuture<void>> pendingFutures_;  // Track async tasks to prevent dangling pointers
 };
 
 #endif  // QHEXWALKER_H3MAZEADAPTER_H

@@ -1,4 +1,5 @@
 #include "astar.h"
+#include "pathfindingErrors.h"
 
 #include <queue>
 
@@ -9,15 +10,26 @@ H3AStar::~H3AStar() = default;
 void H3AStar::setBlockedCells(const std::unordered_set<H3Index> &blocked) { blockedCells = blocked; }
 
 std::vector<H3Index> H3AStar::findShortestPath(const H3Index start, const H3Index end) {
+    // Strategy: Throw for invalid input, return empty for blocked/no path
     if (!isValidCell(start) || !isValidCell(end)) {
-        throw std::domain_error("Invalid H3 indexes");
+        spdlog::error("Invalid H3 cell: start=0x{:x}, end=0x{:x}", start, end);
+        throw PathfindingException(PathfindingError::InvalidCell);
     }
     if (start == end) {
-        throw std::runtime_error("Start and end points are the same");
+        spdlog::error("Start and end points are identical: 0x{:x}", start);
+        throw PathfindingException(PathfindingError::SameStartEnd);
     }
 
-    if (!blockedCells.empty() && (blockedCells.contains(start) || blockedCells.contains(end))) {
-        throw std::runtime_error("Start or end cell is blocked");
+    // Strategy: Warn and return empty for blocked cells
+    if (!blockedCells.empty()) {
+        if (blockedCells.contains(start)) {
+            spdlog::warn("Start cell is blocked: 0x{:x}", start);
+            return {};
+        }
+        if (blockedCells.contains(end)) {
+            spdlog::warn("End cell is blocked: 0x{:x}", end);
+            return {};
+        }
     }
 
     const H3Index originalStart = start;
@@ -29,15 +41,26 @@ std::vector<H3Index> H3AStar::findShortestPath(const H3Index start, const H3Inde
     const H3Index endRes3 = endRes != 3 ? cellToParentRes3(end) : end;
 
     if (startRes3 == H3_NULL || endRes3 == H3_NULL) {
-        throw std::domain_error("Error converting to resolution 3");
+        spdlog::error("Failed to convert to resolution 3: start=0x{:x}, end=0x{:x}", start, end);
+        throw PathfindingException(PathfindingError::ConversionError);
     }
-    if (!blockedCells.empty() && (blockedCells.contains(startRes3) || blockedCells.contains(endRes3))) {
-        return {};  // Coarse start/end blocked
+
+    // Warn and return empty for blocked coarse cells
+    if (!blockedCells.empty()) {
+        if (blockedCells.contains(startRes3)) {
+            spdlog::warn("Start cell (res 3) is blocked: 0x{:x}", startRes3);
+            return {};
+        }
+        if (blockedCells.contains(endRes3)) {
+            spdlog::warn("End cell (res 3) is blocked: 0x{:x}", endRes3);
+            return {};
+        }
     }
 
     LatLng endCoord;
     if (cellToLatLng(endRes3, &endCoord) != E_SUCCESS) {
-        throw std::runtime_error("Error getting target coordinates");
+        spdlog::error("Failed to get coordinates for end cell: 0x{:x}", endRes3);
+        throw PathfindingException(PathfindingError::CoordinateError);
     }
 
     const std::vector<H3Index> pathRes3 = findPathAtResolution3(startRes3, endRes3, endCoord);
@@ -63,13 +86,28 @@ std::vector<H3Index> H3AStar::findPathAtResolution3(const H3Index start, const H
     std::unordered_map<H3Index, H3Index, H3IndexHash> backwardPrev;
     std::unordered_set<H3Index, H3IndexHash> backwardClosed;
 
-    // Резервирование памяти (по ~150 на каждое направление)
-    forwardG.reserve(150);
-    forwardPrev.reserve(150);
-    forwardClosed.reserve(150);
-    backwardG.reserve(150);
-    backwardPrev.reserve(150);
-    backwardClosed.reserve(150);
+    // Динамическое резервирование памяти на основе расстояния между точками
+    int64_t estimatedDistance = 0;
+    if (gridDistance(start, end, &estimatedDistance) == E_SUCCESS && estimatedDistance > 0) {
+        // Для bidirectional A* резервируем (distance + 50%) на каждое направление
+        // +50% для учета препятствий и непрямых путей
+        const size_t reserveSize = std::max(size_t(estimatedDistance * 1.5), size_t(150));
+        forwardG.reserve(reserveSize);
+        forwardPrev.reserve(reserveSize);
+        forwardClosed.reserve(reserveSize);
+        backwardG.reserve(reserveSize);
+        backwardPrev.reserve(reserveSize);
+        backwardClosed.reserve(reserveSize);
+    } else {
+        // Fallback на константное значение если gridDistance не работает
+        constexpr size_t defaultReserve = 150;
+        forwardG.reserve(defaultReserve);
+        forwardPrev.reserve(defaultReserve);
+        forwardClosed.reserve(defaultReserve);
+        backwardG.reserve(defaultReserve);
+        backwardPrev.reserve(defaultReserve);
+        backwardClosed.reserve(defaultReserve);
+    }
 
     // Инициализация
     LatLng startCoord;
