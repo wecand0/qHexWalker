@@ -340,7 +340,7 @@ ApplicationWindow {
                     id: searchStatsTxt
                     anchors.centerIn: parent
                     font.pointSize: 14
-                    font.family: "Courier"
+                    font.family: "Helvetica"
                     color: "cyan"
                     text: h3Model.searchStatsText || ""
                 }
