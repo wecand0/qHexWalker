@@ -103,7 +103,7 @@ std::vector<H3Index> H3MazeGenerator::getRoomNeighbors(const H3Index room,
         if (rooms.contains(candidate)) {
             int64_t distance = 0;
             if (gridDistance(room, candidate, &distance) == E_SUCCESS && distance == kRingSize) {
-                roomNeighbors.push_back(candidate);
+                roomNeighbors.emplace_back(candidate);
             }
         }
     }
@@ -269,7 +269,7 @@ H3MazeGenerator::MazeResult H3MazeGenerator::generateMazeWithEntrances(const H3I
     std::vector<H3Index> borderRooms;
     for (const auto &room : rooms) {
         if (passages.contains(room) && isOnBorder(room, centerCell, radius)) {
-            borderRooms.push_back(room);
+            borderRooms.emplace_back(room);
         }
     }
 

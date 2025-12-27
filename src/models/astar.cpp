@@ -181,14 +181,14 @@ std::vector<H3Index> H3AStar::findPathAtResolution3(const H3Index start, const H
         std::vector<H3Index> forwardPath;
         H3Index current = meetingPoint;
         while (current != start) {
-            forwardPath.push_back(current);
+            forwardPath.emplace_back(current);
             auto it = forwardPrev.find(current);
             if (it == forwardPrev.end()) {
                 break;
             }
             current = it->second;
         }
-        forwardPath.push_back(start);
+        forwardPath.emplace_back(start);
         std::ranges::reverse(forwardPath);
 
         // Путь от meetingPoint до end
@@ -200,9 +200,9 @@ std::vector<H3Index> H3AStar::findPathAtResolution3(const H3Index start, const H
                 break;
             }
             current = it->second;
-            backwardPath.push_back(current);
+            backwardPath.emplace_back(current);
         }
-        backwardPath.push_back(end);
+        backwardPath.emplace_back(end);
 
         // Объединение путей (без дублирования meetingPoint)
         forwardPath.insert(forwardPath.end(), backwardPath.begin(), backwardPath.end());

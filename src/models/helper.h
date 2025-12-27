@@ -77,7 +77,7 @@ struct Helper {
                 const double lngDiff = std::abs(boundary1.verts[i].lng - boundary2.verts[j].lng);
 
                 if (constexpr double EPSILON = 1e-9; latDiff < EPSILON && lngDiff < EPSILON) {
-                    sharedVertices.push_back(boundary1.verts[i]);
+                    sharedVertices.emplace_back(boundary1.verts[i]);
                     break;
                 }
             }

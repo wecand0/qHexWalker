@@ -95,7 +95,7 @@ std::vector<H3Index> Dijkstra::getNeighbors(const H3Index cell) {
     // Фильтруем результаты (исключаем саму ячейку и нулевые индексы)
     for (const H3Index &idx : ring) {
         if (idx != 0 && idx != cell) {
-            neighbors.push_back(idx);
+            neighbors.emplace_back(idx);
         }
     }
 
@@ -121,7 +121,7 @@ std::vector<H3Index> Dijkstra::reconstructPath(const std::unordered_map<H3Index,
     H3Index current = end;
 
     while (current != start) {
-        path.push_back(current);
+        path.emplace_back(current);
         auto it = previous.find(current);
         if (it == previous.end()) {
             return {};  // Путь не найден
