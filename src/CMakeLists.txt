@@ -67,6 +67,18 @@ qt_policy(SET QTP0004 NEW)
 set_source_files_properties(${CMAKE_SOURCE_DIR}/ui/main.qml
     PROPERTIES QT_RESOURCE_ALIAS "ui/main.qml"
 )
+set_source_files_properties(${CMAKE_SOURCE_DIR}/ui/components/TargetButton.qml
+    PROPERTIES QT_RESOURCE_ALIAS "ui/components/TargetButton.qml"
+)
+set_source_files_properties(${CMAKE_SOURCE_DIR}/ui/components/ShortcutHint.qml
+    PROPERTIES QT_RESOURCE_ALIAS "ui/components/ShortcutHint.qml"
+)
+set_source_files_properties(${CMAKE_SOURCE_DIR}/ui/components/TargetListItem.qml
+    PROPERTIES QT_RESOURCE_ALIAS "ui/components/TargetListItem.qml"
+)
+set_source_files_properties(${CMAKE_SOURCE_DIR}/ui/components/TargetsList.qml
+    PROPERTIES QT_RESOURCE_ALIAS "ui/components/TargetsList.qml"
+)
 set_source_files_properties(${CMAKE_SOURCE_DIR}/data/style.json
     PROPERTIES QT_RESOURCE_ALIAS "data/style.json"
 )
@@ -77,6 +89,10 @@ qt_add_qml_module(${PROJECT_NAME}
     RESOURCE_PREFIX "/"
     QML_FILES
         ${CMAKE_SOURCE_DIR}/ui/main.qml
+        ${CMAKE_SOURCE_DIR}/ui/components/TargetButton.qml
+        ${CMAKE_SOURCE_DIR}/ui/components/ShortcutHint.qml
+        ${CMAKE_SOURCE_DIR}/ui/components/TargetListItem.qml
+        ${CMAKE_SOURCE_DIR}/ui/components/TargetsList.qml
     RESOURCES
         ${CMAKE_SOURCE_DIR}/data/style.json
 )

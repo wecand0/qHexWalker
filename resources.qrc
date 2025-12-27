@@ -1,6 +1,11 @@
 <RCC>
     <qresource prefix="/QHexWalker">
         <file>ui/main.qml</file>
+        <file>ui/components/TargetButton.qml</file>
+        <file>ui/components/ShortcutHint.qml</file>
+        <file>ui/components/TargetListItem.qml</file>
+        <file>ui/components/TargetsList.qml</file>
         <file>data/style.json</file>
+
     </qresource>
 </RCC>
