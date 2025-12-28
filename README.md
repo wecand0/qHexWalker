@@ -12,11 +12,7 @@
 [![Documentation](https://img.shields.io/badge/docs-Doxygen-blue.svg)](https://wecand0.github.io/qHexWalker/)
 
 
-
-
-
-<img width="600" height="800"  alt="qHexWalker Maze Screenshot" src=https://github.com/user-attachments/assets/3a8d27c6-4746-4b13-9f03-10d0c188182b  />
-
+<img width="600" height="800" alt="qHexWalker Maze Screenshot" src="https://github.com/user-attachments/assets/475279b0-b57a-450a-99da-4c999c994df7" />
 
 
 [Features](#features) | [How It Works](#how-it-works) | [Installation](#installation) | [Usage](#usage) | [Architecture](#architecture) | [API Docs](https://wecand0.github.io/qHexWalker/)
