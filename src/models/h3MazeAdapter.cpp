@@ -5,9 +5,7 @@
 #include <QtConcurrent/qtconcurrentrun.h>
 #include <ranges>
 
-H3MazeAdapter::H3MazeAdapter(QObject *parent) : QObject(parent) {
-    mazeGenerator_ = new H3MazeGenerator(this);
-}
+H3MazeAdapter::H3MazeAdapter(QObject *parent) : QObject(parent) { mazeGenerator_ = new H3MazeGenerator(this); }
 
 H3MazeAdapter::~H3MazeAdapter() {
     // Ждем завершения всех асинхронных задач перед уничтожением
@@ -86,10 +84,9 @@ void H3MazeAdapter::generateMaze(const double lat, const double lon, const int k
     }
 
     // Фильтруем невалидные ячейки из ring
-    ring1st.erase(
-        std::remove_if(ring1st.begin(), ring1st.end(),
-                       [](H3Index cell) { return cell == H3_NULL || !isValidCell(cell); }),
-        ring1st.end());
+    ring1st.erase(std::remove_if(ring1st.begin(), ring1st.end(),
+                                 [](H3Index cell) { return cell == H3_NULL || !isValidCell(cell); }),
+                  ring1st.end());
 
     if (ring1st.empty()) {
         spdlog::error("No valid cells in ring after filtering");
@@ -203,9 +200,7 @@ std::vector<QVariantList> H3MazeAdapter::cellsToMergedPolygons(const std::unorde
     LinkedGeoPolygon polygon{};
 
     // RAII: Автоматически освобождаем память при любом выходе из функции
-    auto cleanup = qScopeGuard([&polygon] {
-        destroyLinkedMultiPolygon(&polygon);
-    });
+    auto cleanup = qScopeGuard([&polygon] { destroyLinkedMultiPolygon(&polygon); });
 
     if (const H3Error err = cellsToLinkedMultiPolygon(cellsVec.data(), static_cast<int>(cellsVec.size()), &polygon);
         err != E_SUCCESS) {

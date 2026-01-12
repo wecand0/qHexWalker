@@ -91,7 +91,6 @@ void H3Model::Init() {
         mazeAdapter_, &H3MazeAdapter::mazeWallsGenerated, this,
         [this](const std::unordered_set<H3Index> &walls) { worker_->setWalls(walls); }, Qt::QueuedConnection);
 
-
     // Пробрасываем сигнал mazeWallsGenerated наружу для targetsModel
     connect(mazeAdapter_, &H3MazeAdapter::mazeWallsGenerated, this, &H3Model::mazeWallsGenerated, Qt::QueuedConnection);
 

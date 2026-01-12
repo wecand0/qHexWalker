@@ -22,16 +22,16 @@
  * Consistent error codes across all pathfinding algorithms (A*, Dijkstra, etc.)
  */
 enum class PathfindingError {
-    None = 0,           ///< No error occurred
-    InvalidCell,        ///< One or both cells are invalid (H3_NULL or failed isValidCell)
-    SameStartEnd,       ///< Start and end points are identical
-    BlockedStartCell,   ///< Start cell is blocked by an obstacle
-    BlockedEndCell,     ///< End cell is blocked by an obstacle
-    NoPathFound,        ///< No path exists between start and end (disconnected graph)
-    ConversionError,    ///< Error converting between H3 resolutions
-    CoordinateError,    ///< Error getting cell coordinates
-    MaxIterations,      ///< Search exceeded maximum iteration limit
-    InternalError       ///< Internal algorithm error
+    None = 0,          ///< No error occurred
+    InvalidCell,       ///< One or both cells are invalid (H3_NULL or failed isValidCell)
+    SameStartEnd,      ///< Start and end points are identical
+    BlockedStartCell,  ///< Start cell is blocked by an obstacle
+    BlockedEndCell,    ///< End cell is blocked by an obstacle
+    NoPathFound,       ///< No path exists between start and end (disconnected graph)
+    ConversionError,   ///< Error converting between H3 resolutions
+    CoordinateError,   ///< Error getting cell coordinates
+    MaxIterations,     ///< Search exceeded maximum iteration limit
+    InternalError      ///< Internal algorithm error
 };
 
 /**

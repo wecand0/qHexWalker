@@ -227,7 +227,7 @@ The maze generator creates perfect mazes on hexagonal grids:
 | Component | Version | Notes |
 |-----------|---------|-------|
 | CMake | >= 3.19 | Build system |
-| C++ Compiler | C++20 | GCC 10+, Clang 12+, MSVC 2022+ |
+| C++ Compiler | C++20 | GCC 15+, Clang 17+ |
 | Qt | 6.5+ | QuickControls2, Sql, Positioning |
 | vcpkg | Latest | Package manager |
 | MapLibre Native Qt | Latest | Map rendering |
@@ -273,6 +273,7 @@ cmake -S . -B build \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX="$HOME/.local/maplibre-native-qt" \
   -DCMAKE_PREFIX_PATH="/path/to/Qt/6.x.x/<platform>" \
+  -DMLN_WITH_OPENGL=ON \
   -DCMAKE_TOOLCHAIN_FILE="/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake"
 
 cmake --build build -j
@@ -282,7 +283,7 @@ cmake --install build
 #### 4. Build qHexWalker
 
 ```bash
-git clone https://github.com/your-username/qHexWalker.git
+git clone https://github.com/wecand0/qHexWalker.git
 cd qHexWalker
 
 export VCPKG_ROOT="/path/to/vcpkg"
@@ -602,13 +603,13 @@ H3 делит Землю на гексагональные ячейки с 16 у
 
 ### Требования
 
-| Компонент | Версия | Примечание |
-|-----------|--------|------------|
-| CMake | >= 3.19 | Система сборки |
-| C++ компилятор | C++20 | GCC 10+, Clang 12+, MSVC 2022+ |
+| Компонент | Версия | Примечание                       |
+|-----------|--------|----------------------------------|
+| CMake | >= 3.19 | Система сборки                   |
+| C++ компилятор | C++20 | GCC 15+, Clang 17+   |
 | Qt | 6.5+ | QuickControls2, Sql, Positioning |
-| vcpkg | Последняя | Менеджер пакетов |
-| MapLibre Native Qt | Последняя | Рендеринг карт |
+| vcpkg | Последняя | Менеджер пакетов                 |
+| MapLibre Native Qt | Последняя | Рендеринг карт                   |
 
 ### Шаги сборки
 
@@ -651,7 +652,7 @@ cmake --install build
 #### 4. Сборка qHexWalker
 
 ```bash
-git clone https://github.com/your-username/qHexWalker.git
+git clone https://github.com/wecand0/qHexWalker.git
 cd qHexWalker
 
 export VCPKG_ROOT="/путь/к/vcpkg"
@@ -661,6 +662,7 @@ export MAPLIBRE_PREFIX="$HOME/.local/maplibre-native-qt"
 cmake -S . -B build \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
+  -DMLN_WITH_OPENGL=ON \
   -DCMAKE_PREFIX_PATH="${QT_PREFIX};${MAPLIBRE_PREFIX}"
 
 cmake --build build -j
@@ -692,6 +694,6 @@ cmake --build build -j
 
 <div align="center">
 
-**Made with C++20, Qt 6, and H3**
+**Made with C++20, Qt 6, H3 and 💚**
 
 </div>
