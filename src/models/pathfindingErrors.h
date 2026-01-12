@@ -72,12 +72,12 @@ inline std::string pathfindingErrorToString(PathfindingError error) {
  *
  * Wraps PathfindingError enum for exception-based error handling.
  */
-class PathfindingException : public std::runtime_error {
+class PathfindingException final : public std::runtime_error {
 public:
-    explicit PathfindingException(PathfindingError error)
+    explicit PathfindingException(const PathfindingError error)
         : std::runtime_error(pathfindingErrorToString(error)), errorCode_(error) {}
 
-    PathfindingError errorCode() const noexcept { return errorCode_; }
+    [[nodiscard("known error")]] PathfindingError errorCode() const noexcept { return errorCode_; }
 
 private:
     PathfindingError errorCode_;

@@ -3,6 +3,8 @@
 #include "h3MazeAdapter.h"
 #include "h3Worker.h"
 
+#include "helper.h"
+
 #include <QtConcurrent/qtconcurrentrun.h>
 #include <algorithm>
 

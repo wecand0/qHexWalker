@@ -8,7 +8,11 @@ find_package(spdlog CONFIG REQUIRED)
 find_package(h3 CONFIG REQUIRED)
 
 # Qt 6 components
-find_package(Qt6 REQUIRED COMPONENTS QuickControls2 Sql)
+if(ANDROID)
+    find_package(Qt6 REQUIRED COMPONENTS QuickControls2 Sql Positioning Core)
+else()
+    find_package(Qt6 REQUIRED COMPONENTS QuickControls2 Sql)
+endif()
 qt_standard_project_setup(REQUIRES 6.5)
 
 # MapLibre for map rendering

@@ -13,29 +13,6 @@
 #define Q_HEX_WALKER_H3WORKER_H
 
 #include "astar.h"
-#include "helper.h"
-
-/**
- * @struct h3_deleter
- * @brief Custom deleter for H3 LinkedGeoPolygon structures.
- *
- * Ensures proper cleanup of H3 library allocated memory.
- */
-struct h3_deleter {
-    /**
-     * @brief Deletes a LinkedGeoPolygon structure.
-     * @param poly Pointer to the polygon to delete.
-     */
-    void operator()(LinkedGeoPolygon *poly) const {
-        if (poly == nullptr) {
-            return;
-        }
-        destroyLinkedMultiPolygon(poly);
-    }
-};
-
-/// @brief Smart pointer type for LinkedGeoPolygon with automatic cleanup.
-using LinkedGeoPolygonPtr = std::unique_ptr<LinkedGeoPolygon, h3_deleter>;
 
 /**
  * @namespace H3_VIEWER

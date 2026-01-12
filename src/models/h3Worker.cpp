@@ -1,6 +1,6 @@
 #include "h3Worker.h"
 
-#include <ranges>
+#include <helper.h>
 
 using namespace H3_VIEWER;
 using namespace std::chrono_literals;
