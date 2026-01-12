@@ -24,9 +24,8 @@ EntryPoint::EntryPoint(const std::string &loggerName, QObject *parent) : QObject
 EntryPoint::~EntryPoint() = default;
 
 void EntryPoint::InitLogger(const std::string &loggerName) {
-    logger_ = std::make_unique<TD::Logger>(loggerName);
     try {
-        logger_->Init();
+        logger_ = std::make_unique<TD::Logger>(loggerName);
     } catch (const std::exception &e) {
         printf("%s", e.what());
     }
@@ -52,7 +51,7 @@ void EntryPoint::InitDataModels() {
 void EntryPoint::InitMap() {
     mapProvider_ = new MapProvider(this);
     engine_->rootContext()->setContextProperty("mapProvider", mapProvider_);
-    logger_->GetLoggerInstance()->info("Map url -> {}", pathUrl_c.toStdString());
+    spdlog::info("Map url -> {}", pathUrl_c.toStdString());
 
     mapProvider_->setUrl(pathUrl_c);
 

@@ -6,9 +6,9 @@ add_compile_options(-Wfatal-errors -Wall -Werror)
 # Limit errors to one at a time
 if(APPLE)
     # add_compile_options(--ferror-limit=1)
-elseif(UNIX)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_compile_options(-fmax-errors=1)
-endif()
+endif ()
 
 # Build type configuration
 if(DEBUG)

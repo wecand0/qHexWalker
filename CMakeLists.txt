@@ -4,7 +4,7 @@
 cmake_minimum_required(VERSION 3.19 FATAL_ERROR)
 
 # Project configuration
-set(APP_VERSION "0.0.1")
+set(APP_VERSION "0.0.2")
 get_filename_component(PROJECT_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 project(${PROJECT_NAME} VERSION ${APP_VERSION} LANGUAGES CXX C)
 
@@ -24,7 +24,7 @@ option(BUILD_TESTS    "Build unit tests"                    OFF)
 option(BUILD_DOCS     "Build Doxygen documentation"         OFF)
 option(BENCHMARK_ENABLE "Build performance benchmarks"      OFF)
 option(DEBUG          "Enable debug build"                  OFF)
-option(ENABLE_NATIVE_OPTIMIZATIONS "Enable -march=native"   ON)
+option(ENABLE_NATIVE_OPTIMIZATIONS "Enable -march=native"   OFF)
 
 # =============================================================================
 # Configuration Files

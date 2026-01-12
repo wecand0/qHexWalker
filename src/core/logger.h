@@ -14,9 +14,6 @@ public:
         logger_ = spdlog::create_async<spdlog::sinks::stdout_color_sink_mt>(loggerName_);
         spdlog::set_default_logger(logger_);
     }
-    [[nodiscard]] auto GetLoggerInstance() { return logger_; }
-    [[nodiscard]] auto GetLoggerName() const { return loggerName_; }
-    ~Logger() = default;
 
 private:
     std::string loggerName_;
