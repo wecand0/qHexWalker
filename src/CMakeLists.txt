@@ -36,6 +36,9 @@ target_link_libraries(${PROJECT_NAME}_lib
         Qt6::QuickControls2
         Qt6::Positioning
         Qt6::Sql
+
+        QMapLibre::Core
+
         spdlog::spdlog
         h3::h3
 )
@@ -105,6 +108,9 @@ set_target_properties(${PROJECT_NAME}
         WIN32_EXECUTABLE ON
         MACOSX_BUNDLE ON
 )
+
+
+qmaplibre_quick_setup_plugins(${PROJECT_NAME})
 
 # ============================================================================
 # Android-specific configuration

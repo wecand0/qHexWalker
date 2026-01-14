@@ -13,10 +13,15 @@ if(ANDROID)
 else()
     find_package(Qt6 REQUIRED COMPONENTS QuickControls2 Sql)
 endif()
+
 qt_standard_project_setup(REQUIRES 6.5)
 
+if(QT_KNOWN_POLICY_QTP0002)
+    qt_policy(SET QTP0002 NEW)
+endif()
+
 # MapLibre for map rendering
-find_package(QMapLibre COMPONENTS Location REQUIRED)
+find_package(QMapLibre COMPONENTS Core Quick Location REQUIRED)
 
 # Optional: Testing
 if(BUILD_TESTS)

@@ -9,10 +9,17 @@ import QtQuick.Layouts
 ApplicationWindow {
     id: window
 
-    // Constants
-    readonly property real sidebarMinWidth: Screen.width * 0.1
-    readonly property real sidebarMaxWidth: Screen.width * 0.2
-    readonly property real sidebarDefaultWidth: Screen.width * 0.15
+    // Platform detection - multiple methods for reliability
+    readonly property bool isMobile: {
+        var os = Qt.platform.os.toLowerCase()
+        return os === "android" || os === "ios" || os === "qnx" ||
+               (Qt.platform.pluginName && Qt.platform.pluginName.toLowerCase().indexOf("android") >= 0)
+    }
+
+    // Constants - adaptive for mobile
+    readonly property real sidebarMinWidth: isMobile ? Screen.width * 0.7 : Screen.width * 0.1
+    readonly property real sidebarMaxWidth: isMobile ? Screen.width * 0.85 : Screen.width * 0.2
+    readonly property real sidebarDefaultWidth: isMobile ? Screen.width * 0.75 : Screen.width * 0.15
 
     // Тёмная тема
     Material.theme: Material.Dark
@@ -56,10 +63,11 @@ ApplicationWindow {
         anchors.fill: parent
         orientation: Qt.Horizontal
 
-        // Панель со списком целей (refactored to component)
+        // Desktop: Панель со списком целей (refactored to component)
         TargetsList {
             id: targetsList
 
+            visible: !window.isMobile
             implicitWidth: window.sidebarDefaultWidth
             SplitView.maximumWidth: window.sidebarMaxWidth
             SplitView.minimumWidth: window.sidebarMinWidth
@@ -208,19 +216,63 @@ ApplicationWindow {
 
                 target: targetsModel
             }
+            // Touch/Mouse drag for panning
             DragHandler {
                 id: drag
-
-                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad | PointerDevice.TouchScreen
                 target: null
-
                 onTranslationChanged: delta => map.pan(-delta.x, -delta.y)
             }
+
+            // Pinch-to-zoom for touch screens
+            PinchHandler {
+                // id: pinch
+                // target: null
+                // onScaleChanged: (delta) => {
+                //     map.scale(delta, pinch.centroid.position)
+                // }
+                // grabPermissions: PointerHandler.TakeOverForbidden
+                id: pinch
+                target: null
+                property real startZoom: 3
+
+                onActiveChanged: {
+                    if (active) {
+                        startZoom = map.zoomLevel
+                    }
+                }
+
+                onScaleChanged: {
+                    var newZoom = startZoom + Math.log2(scale)
+                    newZoom = Math.max(map.minimumZoomLevel, Math.min(map.maximumZoomLevel, newZoom))
+                    map.zoomLevel = newZoom
+                }
+                grabPermissions: PointerHandler.TakeOverForbidden
+            }
+
+            // универсальный обработчик (мышь + тач)
+            TapHandler {
+                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchScreen
+                grabPermissions: PointerHandler.TakeOverForbidden
+
+                onTapped: function(eventPoint) {
+                    const p = eventPoint.position
+                    currentCoordinate = map.toCoordinate(Qt.point(p.x, p.y))
+
+                    console.log(
+                        "Tapped at:",
+                        currentCoordinate.latitude,
+                        currentCoordinate.longitude
+                    )
+                }
+            }
+
             MouseArea {
                 id: mapMouseArea
 
                 property var currentCoordinate: map.toCoordinate(Qt.point(mouseX, mouseY))
                 property real prevY: -1
+
 
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
                 anchors.fill: parent
@@ -228,6 +280,11 @@ ApplicationWindow {
 
                 hoverEnabled: true
 
+                onPressed: (event) => {
+                    if (event.button === Qt.LeftButton || event.source === Qt.MouseEventNotSynthesized) {
+                        currentCoordinate = map.toCoordinate(Qt.point(event.x, event.y))
+                    }
+                }
                 onClicked: event => {
                     if (event.button === Qt.LeftButton) {
                         currentCoordinate = map.toCoordinate(Qt.point(event.x, event.y));
@@ -288,13 +345,14 @@ ApplicationWindow {
                 }
             }
 
-            // Shortcut hints panel
+            // Desktop: Shortcut hints panel
             Column {
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.margins: 8
                 spacing: 8
                 z: 100
+                visible: !window.isMobile
 
                 ShortcutHint {
                     hintText: " Press 'a' to add a target "
@@ -316,11 +374,91 @@ ApplicationWindow {
                     textColor: "white"
                 }
             }
-            // Search statistics display
+
+            // Mobile: Action buttons panel
+            Column {
+                anchors.top: parent.top
+                anchors.right: parent.right
+                anchors.margins: 16
+                spacing: 12
+                z: 100
+                visible: window.isMobile
+
+                // Menu button to show targets list
+                RoundButton {
+                    id: menuButton
+                    width: 56
+                    height: 56
+                    text: "t"
+                    font.pixelSize: 24
+                    Material.background: Material.BlueGrey
+
+                    onClicked: drawer.open()
+                }
+
+                // Add target button
+                RoundButton {
+                    width: 56
+                    height: 56
+                    text: "+"
+                    font.pixelSize: 28
+                    font.bold: true
+                    Material.background: Material.Green
+
+                    onClicked: {
+                        targetsModel.requestCell(map.zoomLevel.toFixed(1), map.center)
+                    }
+                }
+
+                // Compute button
+                RoundButton {
+                    width: 56
+                    height: 56
+                    text: "▶"
+                    font.pixelSize: 24
+                    Material.background: Material.Orange
+
+                    onClicked: {
+                        targetsModel.compute()
+                    }
+                }
+
+                // Clear all button
+                RoundButton {
+                    width: 56
+                    height: 56
+                    text: "x"
+                    font.pixelSize: 24
+                    Material.background: Material.Red
+
+                    onClicked: {
+                        targetsModel.clearAllCells()
+                        h3Model.clearAllCells()
+                    }
+                }
+
+                // Reset zoom button
+                RoundButton {
+                    width: 56
+                    height: 56
+                    text: "z"
+                    font.pixelSize: 24
+                    Material.background: Material.Grey
+
+                    onClicked: {
+                        centerAnimation.to = map.center
+                        zoomAnimation.to = 3
+                        centerAnimation.start()
+                        zoomAnimation.start()
+                    }
+                }
+            }
+            // Search statistics display (left on mobile to avoid button overlap)
             Rectangle {
                 id: searchStats
                 anchors.top: parent.top
-                anchors.right: parent.right
+                anchors.left: window.isMobile ? parent.left : undefined
+                anchors.right: window.isMobile ? undefined : parent.right
                 anchors.margins: 8
                 border.color: "#66FFFFFF"
                 border.width: 1
@@ -339,7 +477,7 @@ ApplicationWindow {
                 Text {
                     id: searchStatsTxt
                     anchors.centerIn: parent
-                    font.pointSize: 14
+                    font.pointSize: window.isMobile ? 12 : 14
                     font.family: "Helvetica"
                     color: "cyan"
                     text: h3Model.searchStatsText || ""
@@ -486,7 +624,7 @@ ApplicationWindow {
                 opacity: 0.85
                 radius: 7
                 width: copyRightTxt.width
-                z: 1
+                z: 100
 
                 Text {
                     id: copyRightTxt
@@ -507,7 +645,7 @@ ApplicationWindow {
                 opacity: 0.85
                 radius: 7
                 width: zoomText.implicitWidth + 20
-                z: 1
+                z: 100
 
                 Text {
                     id: zoomText
@@ -581,6 +719,28 @@ ApplicationWindow {
             notificationPopup.notificationMessage = message
             notificationPopup.notificationType = type
             notificationPopup.open()
+        }
+    }
+
+    // Mobile: Drawer with targets list
+    Drawer {
+        id: drawer
+        width: window.width * 0.8
+        height: window.height
+        edge: Qt.LeftEdge
+        visible: window.isMobile
+
+        TargetsList {
+            id: drawerTargetsList
+            anchors.fill: parent
+
+            onTargetClicked: function(coordinate, zoom) {
+                centerAnimation.to = coordinate
+                zoomAnimation.to = zoom
+                centerAnimation.start()
+                zoomAnimation.start()
+                drawer.close()
+            }
         }
     }
 }
