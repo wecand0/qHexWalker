@@ -3,6 +3,8 @@
 #include "h3MazeAdapter.h"
 #include "h3Worker.h"
 
+#include "helper.h"
+
 #include <QtConcurrent/qtconcurrentrun.h>
 #include <algorithm>
 
@@ -114,7 +116,7 @@ void H3Model::Init() {
     try {
         constexpr double mazeLat = 0.0;
         constexpr double mazeLon = 0.0;
-        constexpr int kRingRadius = 50;
+        constexpr int kRingRadius = 45;
 
         mazeAdapter_->generateMazeAsync(mazeLat, mazeLon, kRingRadius);
     } catch (const std::exception &e) {
@@ -210,6 +212,46 @@ void H3Model::onCellComputed(const quint8 res, const H3Index index, const QVaria
     addCell(res, index, polygon, cellColor);
 }
 
+void H3Model::onPathCellsBatch(const std::vector<std::tuple<quint8, H3Index, QVariantList>> &cells) {
+    if (isClearing_ || cells.empty()) {
+        return;
+    }
+
+    // Filter out duplicates
+    std::vector<std::tuple<quint8, H3Index, QVariantList, QColor>> newCells;
+    newCells.reserve(cells.size());
+
+    for (const auto &[res, index, polygon] : cells) {
+        if (!findCellByID(index).has_value()) {
+            const auto cellColor = QColor(getColorForResolution(res));
+            newCells.emplace_back(res, index, polygon, cellColor);
+        }
+    }
+
+    if (newCells.empty()) {
+        return;
+    }
+
+    // Single batch insert - much more efficient than individual inserts
+    const int first = static_cast<int>(pathCells_.size());
+    const int last = first + static_cast<int>(newCells.size()) - 1;
+
+    beginInsertRows(QModelIndex(), first, last);
+
+    for (const auto &[res, index, polygon, color] : newCells) {
+        auto cell = new H3Cell(this);
+        cell->setRes(res);
+        cell->setIndex(index);
+        cell->setPath(polygon);
+        cell->setColor(color);
+        pathCells_.emplace_back(cell);
+    }
+
+    endInsertRows();
+
+    spdlog::debug("Batch inserted {} path cells", newCells.size());
+}
+
 void H3Model::requestCells(const std::vector<H3Index> &indexes) {
     if (indexes.empty()) {
         return;
@@ -227,18 +269,16 @@ void H3Model::requestCells(const std::vector<H3Index> &indexes) {
     }
 }
 void H3Model::clearAllCells() {
-    // Проверяем, есть ли что очищать
-    if (pathCells_.isEmpty()) {
-        return;
-    }
-
     // Предотвращаем повторный вызов во время очистки
     if (isClearing_) {
         spdlog::info("Already clearing, skipping...");
         return;
     }
 
-    spdlog::info("Starting clearAllCells, count: {}", pathCells_.size());
+    // Проверяем, есть ли что очищать
+    if (pathCells_.isEmpty()) {
+        return;
+    }
 
     isClearing_ = true;
     emit clearingStarted();
@@ -247,12 +287,6 @@ void H3Model::clearAllCells() {
     qDeleteAll(pathCells_);
     pathCells_.clear();
     endResetModel();
-
-    // Очищаем полигоны лабиринта
-    // if (!mazePolygons_.isEmpty()) {
-    //     mazePolygons_.clear();
-    //     emit mazePolygonsChanged();
-    // }
 
     isClearing_ = false;
     emit clearingFinished();

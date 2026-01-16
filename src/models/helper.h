@@ -1,12 +1,6 @@
 #ifndef QHEXWALKER_HELPER_H
 #define QHEXWALKER_HELPER_H
 
-#include <QGeoCoordinate>
-#include <QVariantList>
-#include <cmath>
-#include <h3/h3api.h>
-#include <vector>
-
 namespace H3_VIEWER {
 struct Helper {
     static std::optional<QVariantList> indexToPolygon(const H3Index index) {
@@ -32,7 +26,7 @@ struct Helper {
         double prevLng = firstLng;
 
         // Обрабатываем остальные точки
-        for (int i = 1; i < childBoundary.numVerts; ++i) {
+        for (auto i = 1; i < childBoundary.numVerts; ++i) {
             const double lat = radsToDegs(childBoundary.verts[i].lat);
             double lng = radsToDegs(childBoundary.verts[i].lng);
 

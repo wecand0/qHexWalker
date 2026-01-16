@@ -36,6 +36,9 @@ target_link_libraries(${PROJECT_NAME}_lib
         Qt6::QuickControls2
         Qt6::Positioning
         Qt6::Sql
+
+        QMapLibre::Core
+
         spdlog::spdlog
         h3::h3
 )
@@ -106,6 +109,23 @@ set_target_properties(${PROJECT_NAME}
         MACOSX_BUNDLE ON
 )
 
+
+qmaplibre_quick_setup_plugins(${PROJECT_NAME})
+
+# ============================================================================
+# Android-specific configuration
+# ============================================================================
+if(ANDROID)
+    set_target_properties(${PROJECT_NAME}
+        PROPERTIES
+            QT_ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_SOURCE_DIR}/android"
+            QT_ANDROID_TARGET_SDK_VERSION 34
+            QT_ANDROID_MIN_SDK_VERSION 26
+    )
+    # Link zlib for QMapLibre compression support
+    target_link_libraries(${PROJECT_NAME} PRIVATE z)
+endif()
+
 set(QML_IMPORT_PATH "${CMAKE_BINARY_DIR}/H3VIEWER" ${QML_IMPORT_PATH})
 
 # MapLibre plugins
@@ -136,7 +156,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Windows")
         IMPORTED_RUNTIME_ARTIFACTS QMapLibre::Core QMapLibre::Location
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     )
-elseif(CMAKE_SYSTEM_NAME MATCHES "Android")
+elseif(ANDROID)
     include(FetchContent)
     FetchContent_Declare(
         android_openssl

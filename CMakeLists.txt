@@ -3,6 +3,8 @@
 # =============================================================================
 cmake_minimum_required(VERSION 3.19 FATAL_ERROR)
 
+#-DCMAKE_TOOLCHAIN_FILE=/home/user/.vcpkg-clion/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_DEFAULT_TRIPLET=x64-windows-static -DCMAKE_PREFIX_PATH="/Users/user/Qt/6.9.0/android_arm64_v8a"  -DCMAKE_C_COMPILER_LAUNCHER="ccache" -DCMAKE_CXX_COMPILER_LAUNCHER="ccache"
+
 # Project configuration
 set(APP_VERSION "0.0.2")
 get_filename_component(PROJECT_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
@@ -20,6 +22,7 @@ set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 # =============================================================================
 # Build Options
 # =============================================================================
+
 option(BUILD_TESTS    "Build unit tests"                    OFF)
 option(BUILD_DOCS     "Build Doxygen documentation"         OFF)
 option(BENCHMARK_ENABLE "Build performance benchmarks"      OFF)
@@ -42,6 +45,15 @@ include_directories(${PROJECT_BINARY_DIR}/config)
 # =============================================================================
 message(STATUS "=== ${PROJECT_NAME} v${APP_VERSION} ===")
 message(STATUS "System           : ${CMAKE_SYSTEM}")
+
+# Android-specific settings
+if(ANDROID)
+    message(STATUS "Android ABI      : ${ANDROID_ABI}")
+    message(STATUS "Android NDK      : ${ANDROID_NDK}")
+    # Disable tests and benchmarks on Android
+    set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(BENCHMARK_ENABLE OFF CACHE BOOL "" FORCE)
+endif()
 
 # =============================================================================
 # CMake Modules

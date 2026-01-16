@@ -165,6 +165,12 @@ private slots:
     void onCellComputed(quint8 res, H3Index index, const QVariantList &polygon, bool isSearching);
 
     /**
+     * @brief Handles batch cell computation for path visualization (optimized).
+     * @param cells Vector of cell data tuples (res, index, polygon).
+     */
+    void onPathCellsBatch(const std::vector<std::tuple<quint8, H3Index, QVariantList>> &cells);
+
+    /**
      * @brief Handles maze polygon computation results.
      * @param polygons Vector of polygon coordinate lists.
      */

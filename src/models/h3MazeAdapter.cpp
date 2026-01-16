@@ -1,7 +1,6 @@
 #include "h3MazeAdapter.h"
 #include "h3MazeGenerator.h"
 
-#include <QPointer>
 #include <QtConcurrent/qtconcurrentrun.h>
 #include <ranges>
 
@@ -21,7 +20,7 @@ void H3MazeAdapter::generateMazeAsync(const double lat, const double lon, const 
     // Используем QPointer для безопасного доступа к this из другого потока
     QPointer self(this);
 
-    auto future = QtConcurrent::run([self, lat, lon, kRingRadius] {
+    const auto future = QtConcurrent::run([self, lat, lon, kRingRadius] {
         // Проверяем, что объект все еще существует
         if (!self) {
             spdlog::warn("H3MazeAdapter was deleted before maze generation completed");
@@ -84,9 +83,7 @@ void H3MazeAdapter::generateMaze(const double lat, const double lon, const int k
     }
 
     // Фильтруем невалидные ячейки из ring
-    ring1st.erase(std::remove_if(ring1st.begin(), ring1st.end(),
-                                 [](H3Index cell) { return cell == H3_NULL || !isValidCell(cell); }),
-                  ring1st.end());
+    std::erase_if(ring1st, [](const H3Index cell) { return cell == H3_NULL || !isValidCell(cell); });
 
     if (ring1st.empty()) {
         spdlog::error("No valid cells in ring after filtering");
