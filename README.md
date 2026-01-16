@@ -13,7 +13,8 @@
 
 
 <img width="600" height="800" alt="qHexWalker Maze Screenshot" src="https://github.com/user-attachments/assets/475279b0-b57a-450a-99da-4c999c994df7" />
-<img width="600" height="800" alt="Screenshot_20260116-151825" src="https://github.com/user-attachments/assets/e02434a2-7eb1-4ce1-aa0e-cc760614c455" />
+<img width="300" height="600" alt="Screenshot_20260116-151825" src="https://github.com/user-attachments/assets/f20506d3-174c-49cd-826d-c1c1542262b0" />
+
 
 
 [Features](#features) | [How It Works](#how-it-works) | [Installation](#installation) | [Usage](#usage) | [Architecture](#architecture) | [API Docs](https://wecand0.github.io/qHexWalker/)
