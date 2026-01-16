@@ -152,6 +152,13 @@ signals:
      */
     void searchStats(int exploredCells, double timeMs, int pathLength);
 
+    /**
+     * @brief Emitted with batch of path cells for efficient rendering.
+     *
+     * @param cells Vector of cell data tuples (resolution, index, polygon).
+     */
+    void pathCellsBatch(const std::vector<std::tuple<quint8, H3Index, QVariantList>> &cells);
+
 private:
     /// @brief Maze wall cells for obstacle avoidance.
     std::unordered_set<H3Index> walls;

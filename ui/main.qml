@@ -33,18 +33,8 @@ ApplicationWindow {
         // console.log("h3Model available:", typeof h3Model)
     }
 
-    property var coordinate: QtPositioning.coordinate(0.0, 0.0)
-    property var zoomTarget: 0
-    property var isInRingOutOfMaze: false
-    property var visibleBounds: ({
-            north: 0,
-            south: 0,
-            east: 0,
-            west: 0
-        })
-
-    height: Screen.height
     visible: true
+    height: Screen.height
     width: Screen.width
 
     Plugin {
@@ -101,46 +91,6 @@ ApplicationWindow {
                 duration: 500 // Animation duration in milliseconds
                 easing.type: Easing.OutCubic // Optional: for smoother animation
             }
-            function normalizeLon(lon) {
-                var x = lon;
-                while (x > 180)
-                    x -= 360;
-                while (x < -180)
-                    x += 360;
-                return x;
-            }
-            function updateVisibleBounds() {
-                if (width <= 0 || height <= 0)
-                    return;
-
-                const pNW = Qt.point(0, 0);
-                const pNE = Qt.point(width, 0);
-                const pSW = Qt.point(0, height);
-                const pSE = Qt.point(width, height);
-
-                const cNW = toCoordinate(pNW);
-                const cNE = toCoordinate(pNE);
-                const cSW = toCoordinate(pSW);
-                const cSE = toCoordinate(pSE);
-
-                var lats = [cNW.latitude, cNE.latitude, cSW.latitude, cSE.latitude];
-                var lons = [normalizeLon(cNW.longitude), normalizeLon(cNE.longitude), normalizeLon(cSW.longitude), normalizeLon(cSE.longitude)];
-
-                var north = Math.max(lats[0], lats[1], lats[2], lats[3]);
-                var south = Math.min(lats[0], lats[1], lats[2], lats[3]);
-
-                var west = Math.min(lons[0], lons[1], lons[2], lons[3]);
-                var east = Math.max(lons[0], lons[1], lons[2], lons[3]);
-
-                visibleBounds = {
-                    north: north,
-                    south: south,
-                    east: east,
-                    west: west
-                };
-
-            //debugBounds.text = " Window: " + window.width + "x" + window.height + " | Map: " + width + "x" + height + " BBOX: N " + north.toFixed(1) + " S " + south.toFixed(1) + " E " + east.toFixed(1) + " W " + west.toFixed(1);
-            }
 
             Layout.fillHeight: true
             Layout.fillWidth: true
@@ -154,31 +104,15 @@ ApplicationWindow {
             plugin: mapPlugin
             zoomLevel: 3
 
-            Component.onCompleted: {
-                updateVisibleBounds();
-            }
-            onBearingChanged: updateVisibleBounds()
-            onCenterChanged: updateVisibleBounds()
-            onHeightChanged: updateVisibleBounds()
-            onMapReadyChanged: updateVisibleBounds()
-            onTiltChanged: {
-                if (map.tilt > map.maximumTilt * 0.9) {
-                    map.tilt = map.maximumTilt * 0.9;
-                }
-                updateVisibleBounds();
-            }
-            onWidthChanged: updateVisibleBounds()
             onZoomLevelChanged: {
                 if (map.zoomLevel <= 3) {
                     map.zoomLevel = 3;
                 }
-                updateVisibleBounds();
             }
 
             // Connections для безопасной очистки модели
             Connections {
                 function onClearingFinished() {
-                    //console.log("Map: Clearing finished - recreating MapItemView");
                     // Восстанавливаем MapItemView
                     if (cells) {
                         cells.model = h3Model;
@@ -186,7 +120,6 @@ ApplicationWindow {
                     }
                 }
                 function onClearingStarted() {
-                    //console.log("Map: Clearing started - destroying MapItemView");
                     // Полностью уничтожаем MapItemView
                     if (cells) {
                         cells.visible = false;
@@ -250,20 +183,38 @@ ApplicationWindow {
                 grabPermissions: PointerHandler.TakeOverForbidden
             }
 
-            // универсальный обработчик (мышь + тач)
+            // Universal tap handler (mouse + touch) - updates coordinate for mobile
             TapHandler {
                 acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchScreen
                 grabPermissions: PointerHandler.TakeOverForbidden
 
                 onTapped: function(eventPoint) {
                     const p = eventPoint.position
-                    currentCoordinate = map.toCoordinate(Qt.point(p.x, p.y))
+                    const coord = map.toCoordinate(Qt.point(p.x, p.y))
+                    mapMouseArea.currentCoordinate = coord
 
                     console.log(
                         "Tapped at:",
-                        currentCoordinate.latitude,
-                        currentCoordinate.longitude
+                        coord.latitude,
+                        coord.longitude
                     )
+                }
+            }
+
+            // Double-tap to zoom for mobile
+            TapHandler {
+                acceptedDevices: PointerDevice.TouchScreen
+                grabPermissions: PointerHandler.TakeOverForbidden
+
+                onDoubleTapped: function(eventPoint) {
+                    const p = eventPoint.position
+                    const mouseGeoPos = map.toCoordinate(Qt.point(p.x, p.y))
+                    const preZoomPoint = map.fromCoordinate(mouseGeoPos, false)
+                    map.zoomLevel += 1
+                    const postZoomPoint = map.fromCoordinate(mouseGeoPos, false)
+                    const dx = postZoomPoint.x - preZoomPoint.x
+                    const dy = postZoomPoint.y - preZoomPoint.y
+                    map.center = map.toCoordinate(Qt.point(map.width / 2 + dx, map.height / 2 + dy))
                 }
             }
 
@@ -278,7 +229,10 @@ ApplicationWindow {
                 anchors.fill: parent
                 cursorShape: Qt.CrossCursor
 
-                hoverEnabled: true
+                // Disable MouseArea on mobile - use TapHandler/PinchHandler/DragHandler instead
+                enabled: !window.isMobile
+                visible: !window.isMobile
+                hoverEnabled: !window.isMobile
 
                 onPressed: (event) => {
                     if (event.button === Qt.LeftButton || event.source === Qt.MouseEventNotSynthesized) {
@@ -396,7 +350,7 @@ ApplicationWindow {
                     onClicked: drawer.open()
                 }
 
-                // Add target button
+                // Add target button - uses last tapped coordinate
                 RoundButton {
                     width: 56
                     height: 56
@@ -406,7 +360,7 @@ ApplicationWindow {
                     Material.background: Material.Green
 
                     onClicked: {
-                        targetsModel.requestCell(map.zoomLevel.toFixed(1), map.center)
+                        targetsModel.requestCell(map.zoomLevel.toFixed(1), mapMouseArea.currentCoordinate)
                     }
                 }
 
@@ -491,6 +445,7 @@ ApplicationWindow {
 
                 delegate: MapPolygon {
                     id: mazePolyDelegate
+                    autoFadeIn: false
                     path: modelData
                     opacity: 0.85
                     color: "pink"
@@ -591,6 +546,7 @@ ApplicationWindow {
                     }
                 }
             }
+            // Path cells as individual polygons
             MapItemView {
                 id: cells
 
@@ -635,6 +591,7 @@ ApplicationWindow {
             }
             // Zoom level indicator
             Rectangle {
+                id: zoomIndicator
                 anchors.bottom: parent.bottom
                 anchors.left: parent.left
                 anchors.margins: 8
@@ -654,6 +611,7 @@ ApplicationWindow {
                     text: "Zoom: %1".arg(map.zoomLevel.toFixed(1))
                 }
             }
+
         }
     }
 
