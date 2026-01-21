@@ -1,0 +1,35 @@
+Run on (12 X 24 MHz CPU s)
+CPU Caches:
+  L1 Data 64 KiB
+  L1 Instruction 128 KiB
+  L2 Unified 4096 KiB (x12)
+Load Average: 3.80, 3.46, 3.02
+-----------------------------------------------------------------------------
+Benchmark                                   Time             CPU   Iterations
+-----------------------------------------------------------------------------
+BM_MazeGeneration_Small                 47211 ns        47208 ns        14315 radius=5
+BM_MazeGeneration_Medium               994825 ns       994766 ns          698 radius=20
+BM_MazeGeneration_Large              10959290 ns     10958857 ns           63 radius=50
+BM_MazeGeneration_VeryLarge          65376432 ns     65373091 ns           11 radius=100
+BM_MazeGeneration_Parametric/5          48832 ns        48826 ns        14780
+BM_MazeGeneration_Parametric/8         133963 ns       133953 ns         5238
+BM_MazeGeneration_Parametric/16        588679 ns       588626 ns         1179
+BM_MazeGeneration_Parametric/32       3314501 ns      3314282 ns          209
+BM_MazeGeneration_Parametric/64      27643820 ns     27642120 ns           25
+BM_MazeGeneration_Parametric/100     65218303 ns     65213727 ns           11
+BM_MazeGeneration_Parametric_BigO     6522.41 N^2     6521.96 N^2
+BM_MazeGeneration_Parametric_RMS            9 %             9 %
+BM_MazeGeneration_WithEntrances/10     222439 ns       222416 ns         3158
+BM_MazeGeneration_WithEntrances/30    3042089 ns      3041861 ns          230
+BM_MazeGeneration_WithEntrances/50   10831318 ns     10830625 ns           64
+BM_AStar_NoObstacles                   412651 ns       412628 ns         1674 no_obstacles
+BM_AStar_SmallMaze                      72002 ns        71997 ns        39163 maze_r10
+BM_AStar_MediumMaze                     73925 ns        73917 ns         7047 maze_r30
+BM_AStar_LargeMaze                     432005 ns       431937 ns         5313 maze_r50
+BM_AStar_VariableObstacles/0            94535 ns        94529 ns         7372 obstacles_0%
+BM_AStar_VariableObstacles/25           72384 ns        72380 ns        13140 obstacles_25%
+BM_AStar_VariableObstacles/50           69275 ns        69271 ns        13454 obstacles_50%
+BM_AStar_VariableObstacles/75           72883 ns        72870 ns       156633 obstacles_75%
+BM_MazeGenerationAndPathfinding/10     342247 ns       342222 ns         2081
+BM_MazeGenerationAndPathfinding/30    5017964 ns      5017669 ns          139
+BM_MazeGenerationAndPathfinding/50   19210896 ns     19210000 ns           35
