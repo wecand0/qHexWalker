@@ -23,7 +23,7 @@ EntryPoint::EntryPoint(const std::string &loggerName, QObject *parent) : QObject
 
 EntryPoint::~EntryPoint() = default;
 
-void EntryPoint::InitLogger(const std::string &loggerName) {
+void EntryPoint::InitLogger(const std::string_view loggerName) {
     try {
         logger_ = std::make_unique<TD::Logger>(loggerName);
     } catch (const std::exception &e) {

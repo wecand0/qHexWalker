@@ -39,7 +39,7 @@ enum class PathfindingError {
  * @param error The error code
  * @return String description of the error
  */
-inline std::string pathfindingErrorToString(PathfindingError error) {
+inline std::string pathfindingErrorToString(const PathfindingError error) {
     switch (error) {
     case PathfindingError::None:
         return "No error";

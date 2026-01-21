@@ -7,7 +7,7 @@
 namespace TD {
 class Logger {
 public:
-    explicit Logger(std::string loggerName) : loggerName_(std::move(loggerName)) {}
+    explicit Logger(const std::string_view loggerName) : loggerName_(loggerName) {}
     void Init(const size_t queueSize = 8192, const size_t threadCount = 1) {
         auto console = spdlog::sinks::stdout_color_sink_mt();
         spdlog::init_thread_pool(queueSize, threadCount);

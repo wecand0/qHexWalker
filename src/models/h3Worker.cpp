@@ -39,6 +39,7 @@ void H3Worker::doWork() {
 
         H3Index prevIndex = req.indexes.front();
         std::vector<H3Index> path;
+        path.reserve(req.indexes.size());
         int totalPathLength = 0;
 
         for (size_t indexId = 1; indexId < req.indexes.size(); indexId++) {
@@ -62,7 +63,7 @@ void H3Worker::doWork() {
         // Вычисляем время поиска
         auto endTime = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
-        const double timeMs = duration.count() / 1000.0;
+        const auto timeMs = static_cast<double>(duration.count()) / 1000.0;
 
         // Эмитим статистику
         emit searchStats(exploredCellsCount_.load(), timeMs, totalPathLength);

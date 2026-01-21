@@ -24,7 +24,6 @@ int main(int argc, char *argv[]) {
     qputenv("QSG_RENDER_LOOP", "threaded");
     qputenv("QML_DISK_CACHE", "aot");
 
-
     const QMapLibre::RendererType rendererType = QMapLibre::supportedRendererType();
     const auto graphicsApi = static_cast<QSGRendererInterface::GraphicsApi>(rendererType);
     QQuickWindow::setGraphicsApi(graphicsApi);

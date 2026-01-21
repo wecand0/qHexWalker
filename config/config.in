@@ -2,6 +2,6 @@
 
 #include <QString>
 
-inline std::string LOGGER_NAME = {"@LOGGER_NAME@"};
-inline QString VERSION = {"@VERSION@"};
-inline QString APP_NAME = {"@APP_NAME@"};
+inline const std::string LOGGER_NAME = {"@LOGGER_NAME@"};
+inline const QString VERSION = {"@VERSION@"};
+inline const QString APP_NAME = {"@APP_NAME@"};

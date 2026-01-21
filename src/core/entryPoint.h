@@ -86,7 +86,7 @@ private:
      * @brief Initializes the spdlog logging system.
      * @param loggerName Name for the logger instance.
      */
-    void InitLogger(const std::string &loggerName);
+    void InitLogger(std::string_view loggerName);
 
     /**
      * @brief Initializes data models (H3Model, H3TargetsModel).
