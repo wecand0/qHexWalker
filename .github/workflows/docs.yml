@@ -20,7 +20,8 @@ permissions:
 
 # Allow only one concurrent deployment
 concurrency:
-  group: "pages"
+  # cancel jobs on PRs only
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:

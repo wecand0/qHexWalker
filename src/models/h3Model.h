@@ -14,6 +14,8 @@
 
 #include <QAbstractListModel>
 
+#include <unordered_set>
+
 class H3Cell;
 class H3MazeAdapter;
 
