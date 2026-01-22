@@ -61,8 +61,9 @@ target_link_libraries(${PROJECT_NAME}
 target_compile_definitions(${PROJECT_NAME}
     PUBLIC QT_DEBUG_NO_OUTPUT
 )
-
-qt_policy(SET QTP0004 NEW)
+if(QT_KNOWN_POLICY_QTP0004)
+    qt_policy(SET QTP0004 NEW)
+endif()
 
 # ============================================================================
 # QML Module
