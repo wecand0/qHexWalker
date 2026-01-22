@@ -14,17 +14,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: '6.9.3'
-          host: 'linux'
-          target: 'desktop'
-          arch: 'gcc_64'
-          modules: 'qtpositioning qtlocation'
-          cache: true
-
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -35,12 +25,28 @@ jobs:
             libxkbcommon-x11-0 \
             libxcb-cursor0 \
             libfuse2 \
-            file
+            file \
+            libicu-dev \
+            libssl-dev \
+            libharfbuzz-dev \
+            libfreetype6-dev
 
-      - name: Setup vcpkg
-        uses: lukka/run-vcpkg@v11
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
         with:
-          vcpkgGitCommitId: '5b1214315250939257ef5d62ecdcbca18cf4fb1c'
+          version: '6.9.3'
+          host: 'linux'
+          target: 'desktop'
+          arch: 'gcc_64'
+          modules: 'qtpositioning qtlocation'
+          cache: true
+
+      - name: Setup vcpkg (without Python compilation)
+        run: |
+          git clone https://github.com/Microsoft/vcpkg.git ${{ runner.temp }}/vcpkg
+          cd ${{ runner.temp }}/vcpkg
+          ./bootstrap-vcpkg.sh
+          echo "VCPKG_ROOT=${{ runner.temp }}/vcpkg" >> $GITHUB_ENV
 
       - name: Checkout MapLibre Native Qt
         uses: actions/checkout@v4
@@ -50,46 +56,53 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Debug submodules
+      - name: Verify submodules
         run: |
           cd maplibre-native-qt
-          echo "=== .gitmodules ==="
-          cat .gitmodules || true
-          echo "=== vendor directory ==="
-          ls -la vendor/
-          echo "=== maplibre-native directory ==="
-          ls -la vendor/maplibre-native/ || true
-          echo "=== git submodule status ==="
-          git submodule status --recursive
+          git submodule update --init --recursive
+          ls -la vendor/maplibre-native/
 
       - name: Build MapLibre Native Qt
         run: |
           cd maplibre-native-qt
-          cmake -S . -B build \
+          mkdir -p build
+          cd build
+          
+          cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/maplibre-install \
             -DCMAKE_PREFIX_PATH="${Qt6_DIR}" \
             -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" \
             -DMLN_WITH_OPENGL=ON \
-            -DMLN_QT_WITH_WIDGETS=OFF
-          cmake --build build -j$(nproc)
-          cmake --install build
+            -DMLN_QT_WITH_WIDGETS=OFF \
+            -G Ninja
+          
+          ninja -j$(nproc)
+          ninja install
 
       - name: Configure project
         run: |
-          cmake -S . -B build \
+          mkdir -p build
+          cd build
+          
+          cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" \
             -DCMAKE_PREFIX_PATH="${Qt6_DIR};${{ github.workspace }}/maplibre-install" \
+            -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install \
             -DBUILD_TESTS=OFF \
             -DBENCHMARK_ENABLE=OFF \
-            -DBUILD_DOCS=OFF
+            -DBUILD_DOCS=OFF \
+            -G Ninja
 
       - name: Build project
-        run: cmake --build build -j$(nproc)
+        run: |
+          cd build
+          ninja -j$(nproc)
 
       - name: Download linuxdeploy
         run: |
+          cd ${{ github.workspace }}
           wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
           chmod +x linuxdeploy*.AppImage
@@ -99,25 +112,46 @@ jobs:
           QMAKE: ${{ env.Qt6_DIR }}/bin/qmake
           QML_SOURCES_PATHS: ${{ github.workspace }}/ui
           QML_MODULES_PATHS: ${{ env.Qt6_DIR }}/qml
-          EXTRA_QT_PLUGINS: positioning;sqldrivers
-          EXCLUDE_PLUGINS: geoservices
+          EXTRA_QT_PLUGINS: positioning;location;geoservices
           NO_STRIP: 1
         run: |
+          cd ${{ github.workspace }}
+          
           # Prepare AppDir
           mkdir -p AppDir/usr/bin
           mkdir -p AppDir/usr/share/applications
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
 
-          cp build/src/qHexWalker AppDir/usr/bin/
+          # Find the built executable
+          if [ -f build/src/qHexWalker ]; then
+            cp build/src/qHexWalker AppDir/usr/bin/
+          elif [ -f build/qHexWalker ]; then
+            cp build/qHexWalker AppDir/usr/bin/
+          else
+            echo "ERROR: qHexWalker executable not found"
+            find build -name "qHexWalker" -type f
+            exit 1
+          fi
+
           cp packaging/appimage/qHexWalker.desktop AppDir/usr/share/applications/
 
-          # Create simple icon
-          cat > AppDir/usr/share/icons/hicolor/256x256/apps/qHexWalker.svg << 'EOF'
+          # Create icon
+          cat > AppDir/usr/share/icons/hicolor/256x256/apps/qHexWalker.svg << 'ICONEOF'
           <svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
             <rect width="256" height="256" rx="32" fill="#4CAF50"/>
-            <polygon points="128,48 197,88 197,168 128,208 59,168 59,88" fill="none" stroke="white" stroke-width="8" transform="translate(0,0)"/>
+            <polygon points="128,48 197,88 197,168 128,208 59,168 59,88" fill="none" stroke="white" stroke-width="8"/>
           </svg>
-          EOF
+          ICONEOF
+
+          # Create AppRun wrapper if needed
+          cat > AppDir/AppRun << 'APPRUNEOF'
+          #!/bin/bash
+          APPDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+          export LD_LIBRARY_PATH="${APPDIR}/usr/lib:${LD_LIBRARY_PATH}"
+          export QML_IMPORT_PATH="${APPDIR}/usr/qml:${QML_IMPORT_PATH}"
+          exec "${APPDIR}/usr/bin/qHexWalker" "$@"
+          APPRUNEOF
+          chmod +x AppDir/AppRun
 
           # Run linuxdeploy
           ./linuxdeploy-x86_64.AppImage \
@@ -133,6 +167,7 @@ jobs:
         with:
           name: qHexWalker-AppImage
           path: qHexWalker*.AppImage
+          if-no-files-found: error
 
       - name: Upload to Release
         if: startsWith(github.ref, 'refs/tags/')
