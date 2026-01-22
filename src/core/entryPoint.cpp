@@ -1,5 +1,7 @@
 #include "entryPoint.h"
 
+#include <QGuiApplication>
+
 #include "h3Model.h"
 #include "h3TargetsModel.h"
 
