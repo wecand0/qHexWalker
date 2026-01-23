@@ -1,5 +1,6 @@
 #include "dijkstra.h"
 
+#include <unordered_set>
 #include <queue>
 
 std::vector<H3Index> Dijkstra::findShortestPath(H3Index start, H3Index end) {
