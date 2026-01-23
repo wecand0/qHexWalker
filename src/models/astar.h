@@ -12,6 +12,8 @@
 #ifndef Q_HEX_WALKER_ASTAR_H
 #define Q_HEX_WALKER_ASTAR_H
 
+#include <unordered_set>
+
 /**
  * @class H3AStar
  * @brief Bidirectional A* pathfinding algorithm for H3 hexagonal cells.
