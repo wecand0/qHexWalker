@@ -2,6 +2,7 @@
 #define QHEXWALKER_H3MAZEADAPTER_H
 
 #include <QFuture>
+#include <unordered_set>
 
 class H3MazeGenerator;
 class H3MazeAdapter final : public QObject {
