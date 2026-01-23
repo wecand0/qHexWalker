@@ -30,7 +30,7 @@ void H3MazeAdapter::generateMazeAsync(const double lat, const double lon, const 
         try {
             self->generateMaze(lat, lon, kRingRadius);
         } catch (const std::exception &e) {
-            spdlog::critical("Maze generation failed: {}", e.what());
+            spdlog::critical("{} {}", "Maze generation failed:", e.what());
         }
     });
 

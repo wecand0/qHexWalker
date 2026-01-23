@@ -12,6 +12,7 @@
 #pragma once
 
 #include <random>
+#include <unordered_set>
 
 /**
  * @class H3MazeGenerator
