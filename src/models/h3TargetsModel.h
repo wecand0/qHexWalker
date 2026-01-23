@@ -2,6 +2,7 @@
 #define QHEXWALKER_H3TARGETSMODEL_H
 
 #include <QAbstractListModel>
+#include <unordered_set>
 
 class H3Target;
 namespace H3_VIEWER {
