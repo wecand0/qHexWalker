@@ -114,13 +114,15 @@ jobs:
 
       - name: Create AppImage
         env:
-          QMAKE: ${{ env.Qt6_DIR }}/bin/qmake
           QML_SOURCES_PATHS: ${{ github.workspace }}/ui
-          QML_MODULES_PATHS: ${{ env.Qt6_DIR }}/qml
           EXTRA_QT_PLUGINS: positioning;location;geoservices
           NO_STRIP: 1
         run: |
           cd ${{ github.workspace }}
+
+          # Set Qt-related environment variables (must be done in shell, not env block)
+          export QMAKE="${Qt6_DIR}/bin/qmake"
+          export QML_MODULES_PATHS="${Qt6_DIR}/qml"
           
           # Prepare AppDir
           mkdir -p AppDir/usr/bin
@@ -140,16 +142,16 @@ jobs:
 
           cp packaging/appimage/qHexWalker.desktop AppDir/usr/share/applications/
 
-          # Create icon
-          cat > AppDir/usr/share/icons/hicolor/256x256/apps/qHexWalker.svg << 'ICONEOF'
+          # Create icon (leading whitespace is OK for SVG)
+          cat > AppDir/usr/share/icons/hicolor/256x256/apps/qHexWalker.svg <<'ICONEOF'
           <svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
             <rect width="256" height="256" rx="32" fill="#4CAF50"/>
             <polygon points="128,48 197,88 197,168 128,208 59,168 59,88" fill="none" stroke="white" stroke-width="8"/>
           </svg>
           ICONEOF
 
-          # Create AppRun wrapper if needed
-          cat > AppDir/AppRun << 'APPRUNEOF'
+          # Create AppRun wrapper (use sed to strip 10 leading spaces so shebang is at position 0)
+          sed 's/^          //' > AppDir/AppRun <<'APPRUNEOF'
           #!/bin/bash
           APPDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
           export LD_LIBRARY_PATH="${APPDIR}/usr/lib:${LD_LIBRARY_PATH}"
